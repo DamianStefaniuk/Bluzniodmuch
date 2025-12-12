@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ustawienia - Słoiczek Wentylacji</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Słoiczek Wentylacji</h1>
+            <p class="subtitle">Ustawienia synchronizacji</p>
+            <nav>
+                <a href="index.html">Tablica</a>
+                <a href="shop.html">Sklep</a>
+                <a href="trophies.html">Trofea</a>
+                <a href="settings.html" class="active">Ustawienia</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="sync-status">
+                <h2>Status synchronizacji</h2>
+                <div class="status-card" id="syncStatusCard">
+                    <div class="status-icon" id="statusIcon">⚪</div>
+                    <div class="status-text">
+                        <span class="status-label" id="statusLabel">Sprawdzanie...</span>
+                        <span class="status-detail" id="statusDetail"></span>
+                    </div>
+                </div>
+
+                <div class="sync-actions" id="syncActions" style="display: none;">
+                    <button class="btn btn-primary" id="syncNowBtn">
+                        Synchronizuj teraz
+                    </button>
+                    <button class="btn btn-secondary" id="disconnectBtn">
+                        Rozłącz
+                    </button>
+                </div>
+            </section>
+
+            <section class="sync-setup" id="syncSetup">
+                <h2>Konfiguracja GitHub Gist</h2>
+
+                <div class="setup-info">
+                    <p>Synchronizacja pozwala współdzielić dane między urządzeniami poprzez GitHub Gist.</p>
+
+                    <div class="steps">
+                        <h3>Jak skonfigurować:</h3>
+                        <ol>
+                            <li>
+                                <strong>Utwórz Personal Access Token:</strong>
+                                <ul>
+                                    <li>Przejdź do <a href="https://github.com/settings/tokens/new" target="_blank">GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</a></li>
+                                    <li>Kliknij "Generate new token (classic)"</li>
+                                    <li>Nadaj nazwę np. "Bluzniodmuch"</li>
+                                    <li>Zaznacz uprawnienie <code>gist</code></li>
+                                    <li>Kliknij "Generate token" i skopiuj token</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Wklej token poniżej</strong> - możesz utworzyć nowy Gist lub podłączyć istniejący
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="setup-form">
+                    <div class="form-group">
+                        <label for="githubToken">Personal Access Token:</label>
+                        <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx">
+                        <button class="btn-icon" id="toggleToken" title="Pokaż/ukryj token">👁️</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gistId">Gist ID (opcjonalnie - zostaw puste aby utworzyć nowy):</label>
+                        <input type="text" id="gistId" placeholder="np. abc123def456...">
+                        <small>Jeśli masz już Gist, wklej jego ID z URL: gist.github.com/user/<strong>GIST_ID</strong></small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="connectBtn">
+                            Połącz z GitHub
+                        </button>
+                        <button class="btn btn-secondary" id="createNewBtn">
+                            Utwórz nowy Gist
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setup-result" id="setupResult" style="display: none;">
+                </div>
+            </section>
+
+            <section class="data-management">
+                <h2>Zarządzanie danymi</h2>
+
+                <div class="data-actions">
+                    <div class="action-card">
+                        <h3>Eksport danych</h3>
+                        <p>Pobierz kopię zapasową wszystkich danych jako plik JSON.</p>
+                        <button class="btn btn-secondary" id="exportBtn">Eksportuj dane</button>
+                    </div>
+
+                    <div class="action-card">
+                        <h3>Import danych</h3>
+                        <p>Przywróć dane z pliku kopii zapasowej.</p>
+                        <input type="file" id="importFile" accept=".json" style="display: none;">
+                        <button class="btn btn-secondary" id="importBtn">Importuj dane</button>
+                    </div>
+
+                    <div class="action-card danger">
+                        <h3>Resetuj dane lokalne</h3>
+                        <p>Usuwa wszystkie lokalne dane. Nie wpływa na dane w Gist.</p>
+                        <button class="btn btn-danger" id="resetBtn">Resetuj dane</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Zespół Wentylacji © 2025</p>
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>

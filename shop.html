@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sklep Fantów - Słoiczek Wentylacji</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Słoiczek Wentylacji</h1>
+            <p class="subtitle">Sklep Odkupienia</p>
+            <nav>
+                <a href="index.html">Tablica</a>
+                <a href="shop.html" class="active">Sklep</a>
+                <a href="trophies.html">Trofea</a>
+                <a href="settings.html">Ustawienia</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="player-select-section">
+                <h2>Wybierz gracza</h2>
+                <div class="player-selector">
+                    <button class="player-select-btn active" data-player="Jacek">
+                        <span class="player-name">Jacek</span>
+                        <span class="player-balance" id="balance-Jacek">0</span>
+                        <span class="player-status" id="status-Jacek"></span>
+                    </button>
+                    <button class="player-select-btn" data-player="Mateusz">
+                        <span class="player-name">Mateusz</span>
+                        <span class="player-balance" id="balance-Mateusz">0</span>
+                        <span class="player-status" id="status-Mateusz"></span>
+                    </button>
+                    <button class="player-select-btn" data-player="Tomek">
+                        <span class="player-name">Tomek</span>
+                        <span class="player-balance" id="balance-Tomek">0</span>
+                        <span class="player-status" id="status-Tomek"></span>
+                    </button>
+                    <button class="player-select-btn" data-player="Karol">
+                        <span class="player-name">Karol</span>
+                        <span class="player-balance" id="balance-Karol">0</span>
+                        <span class="player-status" id="status-Karol"></span>
+                    </button>
+                    <button class="player-select-btn" data-player="Damian">
+                        <span class="player-name">Damian</span>
+                        <span class="player-balance" id="balance-Damian">0</span>
+                        <span class="player-status" id="status-Damian"></span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="shop-section">
+                <h2>Fanty do odkupienia</h2>
+                <p class="shop-info">Wydaj swoje "punkty grzechu" na fanty dla zespołu!</p>
+
+                <div class="shop-grid" id="shopGrid">
+                </div>
+            </section>
+
+            <section class="purchase-history">
+                <h2>Historia odkupień</h2>
+                <div class="history-list" id="historyList">
+                    <p class="no-history">Brak historii zakupów</p>
+                </div>
+            </section>
+
+            <section class="status-legend">
+                <h2>Statusy graczy</h2>
+                <div class="status-grid">
+                    <div class="status-card">
+                        <span class="status-icon">😇</span>
+                        <span class="status-name">Święty</span>
+                        <span class="status-desc">0 przekleństw</span>
+                    </div>
+                    <div class="status-card">
+                        <span class="status-icon">😊</span>
+                        <span class="status-name">Grzeczny</span>
+                        <span class="status-desc">1-5 przekleństw</span>
+                    </div>
+                    <div class="status-card">
+                        <span class="status-icon">😐</span>
+                        <span class="status-name">Neutralny</span>
+                        <span class="status-desc">6-15 przekleństw</span>
+                    </div>
+                    <div class="status-card">
+                        <span class="status-icon">😤</span>
+                        <span class="status-name">Gorsze dni</span>
+                        <span class="status-desc">16-30 przekleństw</span>
+                    </div>
+                    <div class="status-card">
+                        <span class="status-icon">🤬</span>
+                        <span class="status-name">Niegrzeczny</span>
+                        <span class="status-desc">31-50 przekleństw</span>
+                    </div>
+                    <div class="status-card">
+                        <span class="status-icon">👹</span>
+                        <span class="status-name">Przeklinator</span>
+                        <span class="status-desc">51+ przekleństw</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bonus-info">
+                <h2>System bonusów</h2>
+                <div class="bonus-cards">
+                    <div class="bonus-card">
+                        <span class="bonus-icon">📅</span>
+                        <span class="bonus-title">Dzienny bonus</span>
+                        <span class="bonus-desc">Za każdy dzień bez przekleństwa: <strong>-1 punkt</strong></span>
+                    </div>
+                    <div class="bonus-card">
+                        <span class="bonus-icon">🗓️</span>
+                        <span class="bonus-title">Miesięczny bonus</span>
+                        <span class="bonus-desc">Cały miesiąc bez przekleństwa: <strong>-10 punktów</strong></span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Zespół Wentylacji © 2025</p>
+        </footer>
+    </div>
+
+    <div class="modal" id="purchaseModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Potwierdź zakup</h3>
+            <p id="modalDescription"></p>
+            <div class="modal-details">
+                <span>Koszt: <strong id="modalCost">0</strong> punktów</span>
+                <span>Twoje saldo: <strong id="modalBalance">0</strong> punktów</span>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="modalCancel">Anuluj</button>
+                <button class="btn btn-primary" id="modalConfirm">Kupuję!</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/shop-items.js"></script>
+    <script src="js/shop.js"></script>
+</body>
+</html>

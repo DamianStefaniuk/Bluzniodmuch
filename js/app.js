@@ -1,0 +1,248 @@
+/**
+ * Bluzniodmuch - Główna aplikacja
+ */
+
+// Aktualnie wybrany okres
+let currentPeriod = 'month';
+
+// Flaga synchronizacji w toku
+let isSyncing = false;
+
+/**
+ * Inicjalizacja aplikacji
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+    initializeData();
+    renderClickers();
+    renderScoreboard();
+    renderTeamStats();
+    setupEventListeners();
+    updatePeriodLabel();
+    updateSyncIndicator();
+
+    // Automatyczna synchronizacja przy starcie
+    if (isSyncConfigured()) {
+        await performSync();
+    }
+});
+
+/**
+ * Renderuje przyciski klikerów
+ */
+function renderClickers() {
+    const grid = document.getElementById('clickerGrid');
+    grid.innerHTML = '';
+
+    PLAYERS.forEach(player => {
+        const count = getPlayerMonthlyScore(player);
+        const balance = getPlayerTotalBalance(player);
+        const status = getPlayerStatus(balance);
+
+        const card = document.createElement('div');
+        card.className = 'clicker-card';
+        card.dataset.player = player;
+        card.innerHTML = `
+            <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
+            <div class="player-name">${player}</div>
+            <div class="count">${count}</div>
+            <div class="player-total">Razem: ${balance} pkt</div>
+            <div class="click-hint">Kliknij!</div>
+        `;
+
+        card.addEventListener('click', () => handleClick(player, card));
+
+        grid.appendChild(card);
+    });
+}
+
+/**
+ * Pobiera całkowite saldo gracza (do statusu)
+ */
+function getPlayerTotalBalance(playerName) {
+    const data = getData();
+    const player = data.players[playerName];
+    if (!player) return 0;
+
+    const total = player.total || 0;
+    const spent = player.spent || 0;
+    return Math.max(0, total - spent);
+}
+
+/**
+ * Obsługuje kliknięcie w kliker
+ */
+function handleClick(playerName, cardElement) {
+    // Dodaj przekleństwo
+    const playerData = addSwear(playerName);
+
+    // Animacja
+    cardElement.classList.add('pop-animation');
+    setTimeout(() => cardElement.classList.remove('pop-animation'), 300);
+
+    // Aktualizuj licznik na karcie
+    const countElement = cardElement.querySelector('.count');
+    countElement.textContent = playerData.monthly[getCurrentMonthKey()] || 0;
+
+    // Aktualizuj tablicę i statystyki
+    renderScoreboard();
+    renderTeamStats();
+
+    // Zaplanuj synchronizację
+    scheduleSyncAfterAction();
+}
+
+/**
+ * Renderuje tablicę wyników
+ */
+function renderScoreboard() {
+    const tbody = document.getElementById('scoresBody');
+    const scores = getScores(currentPeriod);
+
+    tbody.innerHTML = '';
+
+    scores.forEach((player, index) => {
+        const place = index + 1;
+        const row = document.createElement('tr');
+        row.className = place <= 3 ? `place-${place}` : '';
+
+        row.innerHTML = `
+            <td><span class="place-badge">${place}</span></td>
+            <td>${player.name}</td>
+            <td>${player.count}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+/**
+ * Renderuje statystyki zespołu
+ */
+function renderTeamStats() {
+    document.getElementById('totalMonth').textContent = getTeamTotal('month');
+    document.getElementById('totalYear').textContent = getTeamTotal('year');
+    document.getElementById('totalAll').textContent = getTeamTotal('all');
+}
+
+/**
+ * Aktualizuje etykietę okresu
+ */
+function updatePeriodLabel() {
+    const label = document.getElementById('currentPeriodLabel');
+    switch (currentPeriod) {
+        case 'month':
+            label.textContent = getMonthName(getCurrentMonthKey());
+            break;
+        case 'year':
+            label.textContent = `Rok ${getCurrentYearKey()}`;
+            break;
+        case 'all':
+            label.textContent = 'Wszech czasów';
+            break;
+    }
+}
+
+/**
+ * Ustawia nasłuchiwacze zdarzeń
+ */
+function setupEventListeners() {
+    // Przyciski okresów
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Usuń aktywną klasę ze wszystkich
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            // Dodaj aktywną klasę do klikniętego
+            e.target.classList.add('active');
+
+            // Zmień okres i odśwież
+            currentPeriod = e.target.dataset.period;
+            renderScoreboard();
+            updatePeriodLabel();
+        });
+    });
+
+    // Wskaźnik synchronizacji - kliknięcie
+    const syncIndicator = document.getElementById('syncIndicator');
+    if (syncIndicator) {
+        syncIndicator.addEventListener('click', async () => {
+            if (isSyncConfigured()) {
+                await performSync();
+            } else {
+                window.location.href = 'settings.html';
+            }
+        });
+    }
+}
+
+/**
+ * Aktualizuje wskaźnik synchronizacji
+ */
+function updateSyncIndicator() {
+    const syncIcon = document.getElementById('syncIcon');
+    const syncText = document.getElementById('syncText');
+    const syncIndicator = document.getElementById('syncIndicator');
+
+    if (!syncIcon || !syncText) return;
+
+    if (isSyncConfigured()) {
+        if (isSyncing) {
+            syncIcon.textContent = '🔄';
+            syncText.textContent = 'Synchronizowanie...';
+            syncIndicator.classList.add('syncing');
+        } else {
+            syncIcon.textContent = '🟢';
+            syncText.textContent = 'Połączono';
+            syncIndicator.classList.remove('syncing');
+        }
+    } else {
+        syncIcon.textContent = '⚪';
+        syncText.textContent = 'Offline';
+        syncIndicator.classList.remove('syncing');
+    }
+}
+
+/**
+ * Wykonuje synchronizację
+ */
+async function performSync() {
+    if (isSyncing || !isSyncConfigured()) return;
+
+    isSyncing = true;
+    updateSyncIndicator();
+
+    try {
+        const result = await syncData();
+
+        if (result.success) {
+            // Odśwież widoki po synchronizacji
+            renderClickers();
+            renderScoreboard();
+            renderTeamStats();
+        } else {
+            console.error('Sync failed:', result.message);
+        }
+    } catch (error) {
+        console.error('Sync error:', error);
+    } finally {
+        isSyncing = false;
+        updateSyncIndicator();
+    }
+}
+
+/**
+ * Synchronizuje po każdej akcji (z debounce)
+ */
+let syncTimeout = null;
+function scheduleSyncAfterAction() {
+    if (!isSyncConfigured()) return;
+
+    // Debounce - czekaj 2 sekundy po ostatniej akcji
+    if (syncTimeout) {
+        clearTimeout(syncTimeout);
+    }
+
+    syncTimeout = setTimeout(async () => {
+        await performSync();
+    }, 2000);
+}

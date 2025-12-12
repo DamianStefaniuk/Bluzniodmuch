@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluzniodmuch - Słoiczek Wentylacji</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Słoiczek Wentylacji</h1>
+            <p class="subtitle">Kto dziś najbardziej "wentyluje"?</p>
+            <nav>
+                <a href="index.html" class="active">Tablica</a>
+                <a href="shop.html">Sklep</a>
+                <a href="trophies.html">Trofea</a>
+                <a href="settings.html">Ustawienia</a>
+            </nav>
+            <div class="sync-indicator" id="syncIndicator" title="Kliknij aby zsynchronizować">
+                <span id="syncIcon">⚪</span>
+                <span id="syncText">Offline</span>
+            </div>
+        </header>
+
+        <main>
+            <section class="scoreboard">
+                <h2>Tablica Wyników</h2>
+
+                <div class="period-tabs">
+                    <button class="tab-btn active" data-period="month">Miesiąc</button>
+                    <button class="tab-btn" data-period="year">Rok</button>
+                    <button class="tab-btn" data-period="all">Wszech czasów</button>
+                </div>
+
+                <div class="current-period">
+                    <span id="currentPeriodLabel"></span>
+                </div>
+
+                <table class="scores-table">
+                    <thead>
+                        <tr>
+                            <th>Miejsce</th>
+                            <th>Gracz</th>
+                            <th>Przekleństwa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoresBody">
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="clickers">
+                <h2>Dodaj Przekleństwo</h2>
+                <p class="clicker-info">Kliknij swój przycisk, gdy "wentyl" Ci się wyrwał!</p>
+
+                <div class="clicker-grid" id="clickerGrid">
+                </div>
+            </section>
+
+            <section class="stats">
+                <h2>Statystyki Zespołu</h2>
+                <div class="team-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalMonth">0</span>
+                        <span class="stat-label">Ten miesiąc</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalYear">0</span>
+                        <span class="stat-label">Ten rok</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalAll">0</span>
+                        <span class="stat-label">Wszech czasów</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Zespół Wentylacji &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/shop-items.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

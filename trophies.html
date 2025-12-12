@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trofea - Słoiczek Wentylacji</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Słoiczek Wentylacji</h1>
+            <p class="subtitle">Galeria Sławy i Wstydu</p>
+            <nav>
+                <a href="index.html">Tablica</a>
+                <a href="shop.html">Sklep</a>
+                <a href="trophies.html" class="active">Trofea</a>
+                <a href="settings.html">Ustawienia</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="team-trophies">
+                <h2>Trofea Zespołowe</h2>
+                <div class="trophies-grid" id="teamTrophiesGrid">
+                </div>
+            </section>
+
+            <section class="player-trophies">
+                <h2>Trofea Indywidualne</h2>
+
+                <div class="player-tabs">
+                    <button class="player-tab active" data-player="Jacek">Jacek</button>
+                    <button class="player-tab" data-player="Mateusz">Mateusz</button>
+                    <button class="player-tab" data-player="Tomek">Tomek</button>
+                    <button class="player-tab" data-player="Karol">Karol</button>
+                    <button class="player-tab" data-player="Damian">Damian</button>
+                </div>
+
+                <div class="player-trophy-display" id="playerTrophyDisplay">
+                </div>
+            </section>
+
+            <section class="trophy-legend">
+                <h2>Legenda Trofeów</h2>
+                <div class="legend-grid" id="legendGrid">
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Zespół Wentylacji &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/trophies.js"></script>
+</body>
+</html>
