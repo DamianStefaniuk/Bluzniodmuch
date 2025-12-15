@@ -9,7 +9,8 @@ const SYNC_STORAGE_KEYS = {
     GIST_ID: 'bluzniodmuch_gist_id',
     GITHUB_TOKEN: 'bluzniodmuch_github_token',
     GITHUB_USERNAME: 'bluzniodmuch_github_username',
-    LAST_SYNC: 'bluzniodmuch_last_sync'
+    LAST_SYNC: 'bluzniodmuch_last_sync',
+    SELECTED_PLAYER: 'bluzniodmuch_selected_player'
 };
 
 const GIST_FILENAME = 'bluzniodmuch_data.json';
@@ -67,6 +68,7 @@ function clearSyncConfig() {
     localStorage.removeItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN);
     localStorage.removeItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME);
     localStorage.removeItem(SYNC_STORAGE_KEYS.LAST_SYNC);
+    localStorage.removeItem(SYNC_STORAGE_KEYS.SELECTED_PLAYER);
 }
 
 /**
@@ -96,18 +98,44 @@ function isAdmin() {
  * Sprawdza czy zalogowany użytkownik jest autoryzowany (może korzystać z aplikacji)
  */
 function isAuthorizedUser() {
-    const username = getGithubUsername();
-    if (!username) return false;
-    return username in ALLOWED_USERS;
+    if (!isSyncConfigured()) return false;
+    const selectedPlayer = getSelectedPlayer();
+    return selectedPlayer && PLAYERS.includes(selectedPlayer);
 }
 
 /**
- * Pobiera nazwę gracza na podstawie zalogowanego GitHub username
+ * Pobiera nazwę gracza na podstawie wybranego profilu
  */
 function getPlayerNameFromGithub() {
-    const username = getGithubUsername();
-    if (!username) return null;
-    return ALLOWED_USERS[username] || null;
+    return getSelectedPlayer();
+}
+
+/**
+ * Zapisuje wybranego gracza
+ */
+function saveSelectedPlayer(playerName) {
+    localStorage.setItem(SYNC_STORAGE_KEYS.SELECTED_PLAYER, playerName);
+}
+
+/**
+ * Pobiera wybranego gracza
+ */
+function getSelectedPlayer() {
+    return localStorage.getItem(SYNC_STORAGE_KEYS.SELECTED_PLAYER) || null;
+}
+
+/**
+ * Czyści wybranego gracza
+ */
+function clearSelectedPlayer() {
+    localStorage.removeItem(SYNC_STORAGE_KEYS.SELECTED_PLAYER);
+}
+
+/**
+ * Pobiera listę dostępnych graczy
+ */
+function getAvailablePlayers() {
+    return PLAYERS;
 }
 
 /**

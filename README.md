@@ -60,32 +60,6 @@ Każdy gracz ma status zależny od bilansu punktów:
 | Niegrzeczny | 🤬 | -31 do -50 pkt |
 | Przeklinator | 👹 | -51 i mniej |
 
-## Autoryzacja użytkowników
-
-Aplikacja wymaga zalogowania przez GitHub. Tylko autoryzowani użytkownicy mogą:
-- Dodawać przekleństwa
-- Korzystać ze sklepu nagród i kar
-
-### Konfiguracja użytkowników
-
-Lista autoryzowanych użytkowników znajduje się w pliku `js/sync.js`:
-
-```javascript
-const ALLOWED_USERS = {
-    'GitHubUsername': 'NazwaGracza',
-    'DamianStefaniuk': 'Damian',
-    // ...
-};
-```
-
-### Administratorzy
-
-Administratorzy mają dodatkowe uprawnienia do zarządzania danymi:
-
-```javascript
-const ADMIN_USERS = ['DamianStefaniuk'];
-```
-
 ## Uruchomienie
 
 ### GitHub Pages

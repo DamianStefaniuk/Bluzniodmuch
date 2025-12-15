@@ -41,6 +41,26 @@
                 </div>
             </section>
 
+            <section class="player-selection" id="playerSelectionSection" style="display: none;">
+                <h2>Twój profil gracza</h2>
+                <div class="player-selection-info">
+                    <p>Wybierz swoje konto gracza. Będziesz mógł dodawać przekleństwa i korzystać ze sklepu tylko dla tego gracza.</p>
+                </div>
+                <div class="form-group">
+                    <label for="playerSelect">Zaloguj jako:</label>
+                    <select id="playerSelect" class="player-dropdown">
+                        <option value="">-- Wybierz gracza --</option>
+                    </select>
+                </div>
+                <div class="current-player-info" id="currentPlayerInfo" style="display: none;">
+                    <div class="player-avatar" id="playerAvatar"></div>
+                    <div class="player-details">
+                        <span class="player-name-display" id="playerNameDisplay"></span>
+                        <span class="player-status-display" id="playerStatusDisplay"></span>
+                    </div>
+                </div>
+            </section>
+
             <section class="sync-setup" id="syncSetup">
                 <h2>Konfiguracja GitHub Gist</h2>
 

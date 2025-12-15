@@ -1381,6 +1381,80 @@ footer {
     box-shadow: none;
 }
 
+/* Player Selection Section in Settings */
+.player-selection {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.player-selection h2 {
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.player-selection-info {
+    margin-bottom: 20px;
+    color: var(--text-light);
+}
+
+.player-dropdown {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1rem;
+    border: 2px solid var(--background);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.player-dropdown:hover {
+    border-color: var(--primary);
+}
+
+.player-dropdown:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.current-player-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--background);
+    border-radius: 10px;
+}
+
+.player-avatar {
+    font-size: 3rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.player-name-display {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--text);
+}
+
+.player-status-display {
+    font-size: 1rem;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     header h1 {

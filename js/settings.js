@@ -5,9 +5,59 @@
 document.addEventListener('DOMContentLoaded', () => {
     initializeData();
     updateSyncStatus();
+    updatePlayerSelection();
     updateDataManagementAccess();
     setupSettingsEventListeners();
 });
+
+/**
+ * Aktualizuje sekcję wyboru gracza
+ */
+function updatePlayerSelection() {
+    const playerSelectionSection = document.getElementById('playerSelectionSection');
+    const playerSelect = document.getElementById('playerSelect');
+    const currentPlayerInfo = document.getElementById('currentPlayerInfo');
+
+    if (!isSyncConfigured()) {
+        playerSelectionSection.style.display = 'none';
+        return;
+    }
+
+    // Pokaż sekcję wyboru gracza
+    playerSelectionSection.style.display = 'block';
+
+    // Wypełnij dropdown listą graczy
+    const players = getAvailablePlayers();
+    const currentPlayer = getSelectedPlayer();
+
+    playerSelect.innerHTML = '<option value="">-- Wybierz gracza --</option>';
+    players.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player;
+        option.textContent = player;
+        if (player === currentPlayer) {
+            option.selected = true;
+        }
+        playerSelect.appendChild(option);
+    });
+
+    // Pokaż info o aktualnie wybranym graczu
+    if (currentPlayer) {
+        currentPlayerInfo.style.display = 'flex';
+        const data = getData();
+        const playerData = data.players[currentPlayer];
+        const balance = playerData ? calculatePlayerTotal(playerData) : 0;
+        const status = getPlayerStatus(balance);
+
+        document.getElementById('playerAvatar').textContent = status.icon;
+        document.getElementById('playerAvatar').style.color = status.color;
+        document.getElementById('playerNameDisplay').textContent = currentPlayer;
+        document.getElementById('playerStatusDisplay').textContent = status.name;
+        document.getElementById('playerStatusDisplay').style.color = status.color;
+    } else {
+        currentPlayerInfo.style.display = 'none';
+    }
+}
 
 /**
  * Aktualizuje dostęp do sekcji zarządzania danymi
@@ -72,7 +122,8 @@ function updateSyncStatus() {
         syncSetup.querySelector('.setup-form').style.display = 'block';
     }
 
-    // Aktualizuj dostęp do zarządzania danymi
+    // Aktualizuj sekcję wyboru gracza i dostęp do zarządzania danymi
+    updatePlayerSelection();
     updateDataManagementAccess();
 }
 
@@ -107,6 +158,18 @@ function showResult(message, isError = false) {
  * Ustawia nasłuchiwacze zdarzeń
  */
 function setupSettingsEventListeners() {
+    // Wybór gracza
+    document.getElementById('playerSelect').addEventListener('change', (e) => {
+        const selectedPlayer = e.target.value;
+        if (selectedPlayer) {
+            saveSelectedPlayer(selectedPlayer);
+            showResult(`Zalogowano jako ${selectedPlayer}!`);
+        } else {
+            clearSelectedPlayer();
+        }
+        updatePlayerSelection();
+    });
+
     // Toggle widoczności tokena
     document.getElementById('toggleToken').addEventListener('click', () => {
         const tokenInput = document.getElementById('githubToken');
