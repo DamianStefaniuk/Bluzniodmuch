@@ -88,35 +88,35 @@ const INDIVIDUAL_ACHIEVEMENTS = [
         name: "W Plusie",
         description: "Osiągnij dodatni bilans punktów",
         icon: "📊",
-        condition: (player) => (player.total || 0) > 0
+        condition: (player) => calculatePlayerTotal(player) > 0
     },
     {
         id: "ten_positive",
         name: "Dobra Passa",
         description: "Osiągnij 10 punktów dodatnich",
         icon: "🌟",
-        condition: (player) => (player.total || 0) >= 10
+        condition: (player) => calculatePlayerTotal(player) >= 10
     },
     {
         id: "twenty_positive",
         name: "Wzorowy",
         description: "Osiągnij 20 punktów dodatnich",
         icon: "🏅",
-        condition: (player) => (player.total || 0) >= 20
+        condition: (player) => calculatePlayerTotal(player) >= 20
     },
     {
         id: "fifty_positive",
         name: "Święty",
         description: "Osiągnij 50 punktów dodatnich",
         icon: "😇",
-        condition: (player) => (player.total || 0) >= 50
+        condition: (player) => calculatePlayerTotal(player) >= 50
     },
     {
         id: "deep_negative",
         name: "Dno",
         description: "Spadnij do -50 punktów",
         icon: "🕳️",
-        condition: (player) => (player.total || 0) <= -50
+        condition: (player) => calculatePlayerTotal(player) <= -50
     },
     {
         id: "comeback",
@@ -125,7 +125,7 @@ const INDIVIDUAL_ACHIEVEMENTS = [
         icon: "🔄",
         condition: (player) => {
             // Sprawdź czy gracz miał kiedyś ujemny bilans i teraz ma dodatni
-            return (player.swearCount || 0) > 0 && (player.total || 0) > 0;
+            return (player.swearCount || 0) > 0 && calculatePlayerTotal(player) > 0;
         }
     },
     {

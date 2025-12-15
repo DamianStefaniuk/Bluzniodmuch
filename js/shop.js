@@ -304,17 +304,17 @@ async function completePurchase() {
 
     saveData(data);
 
-    // Synchronizuj
-    if (isSyncConfigured()) {
-        await syncData();
-    }
-
-    // Sprawdź osiągnięcia
+    // Sprawdź osiągnięcia PRZED synchronizacją
     if (typeof checkAndAwardAchievements === 'function') {
         const newAchievements = checkAndAwardAchievements(selectedPlayer);
         newAchievements.forEach(achievement => {
             showAchievementNotification(achievement);
         });
+    }
+
+    // Synchronizuj (teraz włącznie z nowymi osiągnięciami)
+    if (isSyncConfigured()) {
+        await syncData();
     }
 
     // Odśwież widoki

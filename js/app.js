@@ -113,7 +113,7 @@ function handleClick(playerName, cardElement) {
     countElement.textContent = playerData.monthly[getCurrentMonthKey()] || 0;
 
     // Aktualizuj bilans na karcie
-    const balance = playerData.total || 0;
+    const balance = calculatePlayerTotal(playerData);
     const balanceElement = cardElement.querySelector('.player-total');
     if (balanceElement) {
         const balanceDisplay = balance > 0 ? `+${balance}` : balance;

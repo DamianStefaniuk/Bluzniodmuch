@@ -342,19 +342,42 @@ async function syncData() {
         const remoteData = await fetchFromGist();
         const localData = getData();
 
-        // Scala dane - używa odpowiednich strategii dla każdego pola
+        // Scala dane wyników - używa odpowiednich strategii dla każdego pola
         const mergedData = mergeAllData(localData, remoteData.scores);
+
+        // Scala osiągnięcia
+        const localAchievements = getLocalAchievements();
+        const mergedAchievements = mergeAchievements(localAchievements, remoteData.achievements);
 
         // Zapisz lokalnie
         saveData(mergedData);
+        saveLocalAchievements(mergedAchievements);
 
         // Zapisz na Gist
-        await saveToGist(mergedData);
+        await saveToGist(mergedData, mergedAchievements);
 
         return { success: true, message: 'Synchronizacja zakończona pomyślnie' };
     } catch (error) {
         return { success: false, message: error.message };
     }
+}
+
+/**
+ * Pobiera osiągnięcia z localStorage
+ */
+function getLocalAchievements() {
+    const stored = localStorage.getItem('bluzniodmuch_achievements');
+    if (!stored) {
+        return { individual: {}, team: [] };
+    }
+    return JSON.parse(stored);
+}
+
+/**
+ * Zapisuje osiągnięcia do localStorage
+ */
+function saveLocalAchievements(achievements) {
+    localStorage.setItem('bluzniodmuch_achievements', JSON.stringify(achievements));
 }
 
 /**
@@ -506,6 +529,62 @@ function mergeNewerString(local, remote) {
 
     // Dla kluczy typu "2025-12" - większy string = nowszy miesiąc
     return local > remote ? local : remote;
+}
+
+/**
+ * Scala osiągnięcia z dwóch źródeł
+ */
+function mergeAchievements(local, remote) {
+    if (!remote) return local || { individual: {}, team: [] };
+    if (!local) return remote;
+
+    const merged = {
+        individual: {},
+        team: []
+    };
+
+    // Połącz osiągnięcia indywidualne
+    const allPlayers = new Set([
+        ...Object.keys(local.individual || {}),
+        ...Object.keys(remote.individual || {})
+    ]);
+
+    allPlayers.forEach(player => {
+        const localAchievements = local.individual?.[player] || [];
+        const remoteAchievements = remote.individual?.[player] || [];
+
+        // Połącz bez duplikatów (po ID)
+        const achievementMap = new Map();
+
+        localAchievements.forEach(a => {
+            achievementMap.set(a.id, a);
+        });
+
+        remoteAchievements.forEach(a => {
+            if (!achievementMap.has(a.id)) {
+                achievementMap.set(a.id, a);
+            }
+        });
+
+        merged.individual[player] = Array.from(achievementMap.values());
+    });
+
+    // Połącz osiągnięcia zespołowe bez duplikatów
+    const teamMap = new Map();
+
+    (local.team || []).forEach(a => {
+        teamMap.set(a.id, a);
+    });
+
+    (remote.team || []).forEach(a => {
+        if (!teamMap.has(a.id)) {
+            teamMap.set(a.id, a);
+        }
+    });
+
+    merged.team = Array.from(teamMap.values());
+
+    return merged;
 }
 
 /**
