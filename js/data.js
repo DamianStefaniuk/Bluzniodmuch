@@ -246,8 +246,10 @@ function addSwear(playerName) {
 
 /**
  * Pobiera wyniki dla danego okresu
- * Teraz pokazuje punkty (dodatnie = dobre, ujemne = złe)
- * Sortowanie: najwyższy wynik = 1 miejsce
+ * - month: bilans punktów (reaguje na zakupy), swearCount = przekleństwa w miesiącu
+ * - year: liczba przekleństw w roku
+ * - all: całkowita liczba przekleństw
+ * Sortowanie: month - najwyższy bilans = 1 miejsce; year/all - najmniej przekleństw = 1 miejsce
  */
 function getScores(period = 'month') {
     const data = getData();
@@ -261,26 +263,31 @@ function getScores(period = 'month') {
 
         switch (period) {
             case 'month':
-                // Punkty za miesiąc = ujemna liczba przekleństw w miesiącu
+                // Miesiąc: bilans punktów, ale swearCount to przekleństwa w miesiącu
+                points = calculatePlayerTotal(playerData);
                 swearCount = playerData.monthly?.[monthKey] || 0;
-                points = -swearCount; // każde przekleństwo to -1
                 break;
             case 'year':
-                // Punkty za rok = ujemna liczba przekleństw w roku
+                // Rok: liczba przekleństw w roku
                 swearCount = playerData.yearly?.[yearKey] || 0;
-                points = -swearCount;
+                points = swearCount;
                 break;
             case 'all':
-                // Całkowity bilans punktów (obliczony ze składników)
-                points = calculatePlayerTotal(playerData);
+                // Ogółem: całkowita liczba przekleństw
                 swearCount = playerData.swearCount || 0;
+                points = swearCount;
                 break;
         }
 
         return { name: player, points, swearCount };
     });
 
-    // Sortuj od najwyższego wyniku (najbardziej dodatni = 1 miejsce)
+    // Sortowanie:
+    // - month: od najwyższego bilansu (najwięcej punktów = 1 miejsce)
+    // - year/all: od najniższego (najmniej przekleństw = 1 miejsce)
+    if (period === 'year' || period === 'all') {
+        return scores.sort((a, b) => a.points - b.points);
+    }
     return scores.sort((a, b) => b.points - a.points);
 }
 
