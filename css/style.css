@@ -347,6 +347,10 @@ footer {
     text-align: center;
     padding: 20px;
     color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
 /* Animations */
@@ -670,21 +674,25 @@ footer {
     letter-spacing: 0.5px;
 }
 
-/* Sync indicator for main page */
+/* Sync indicator for footer */
 .sync-indicator {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 15px;
-    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 20px;
+    background: var(--background);
     border-radius: 20px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s;
+    color: var(--text);
+    border: 2px solid transparent;
 }
 
 .sync-indicator:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
 }
 
 .sync-indicator.syncing {
@@ -773,6 +781,9 @@ footer {
     padding: 20px;
     text-align: center;
     transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .shop-item-card:hover {
@@ -795,7 +806,10 @@ footer {
     font-size: 0.85rem;
     color: var(--text-light);
     margin-bottom: 15px;
-    min-height: 40px;
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 .shop-item-cost {
@@ -816,6 +830,7 @@ footer {
 .shop-buy-btn {
     width: 100%;
     padding: 10px;
+    margin-top: auto;
 }
 
 /* History */
@@ -1184,6 +1199,7 @@ footer {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
+    align-items: stretch;
 }
 
 /* Shop item cards - rewards */

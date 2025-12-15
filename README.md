@@ -4,7 +4,7 @@ Aplikacja webowa do gamifikacji słoiczka na przekleństwa dla Zespołu Wentylac
 
 ## Funkcjonalności
 
-- **Tablica wyników** - ranking graczy z podziałem na miesiąc, rok i wszech czasów
+- **Tablica wyników** - ranking graczy z podziałem na miesiąc, rok i ogółem
 - **Kliker** - każdy gracz może dodawać swoje przekleństwa jednym kliknięciem
 - **Sklep fantów** - wydawaj punkty przekleństw na fanty/kary dla zespołu
 - **System statusów** - dynamiczne statusy graczy na podstawie liczby punktów

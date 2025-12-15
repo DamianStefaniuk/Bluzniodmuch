@@ -73,7 +73,7 @@ function renderClickers() {
         card.dataset.player = player;
         card.innerHTML = `
             <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
-            <div class="player-name">${player}${isCurrentPlayer ? ' (Ty)' : ''}</div>
+            <div class="player-name">${player}</div>
             <div class="count">${monthlySwears}</div>
             <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
             <div class="click-hint">${isUserAuthorized ? 'Kliknij!' : '🔒'}</div>
@@ -184,7 +184,7 @@ function updatePeriodLabel() {
             label.textContent = `Rok ${getCurrentYearKey()}`;
             break;
         case 'all':
-            label.textContent = 'Wszech czasów';
+            label.textContent = 'Ogółem';
             break;
     }
 }

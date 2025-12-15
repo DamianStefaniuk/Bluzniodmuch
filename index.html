@@ -4,23 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bluzniodmuch - Słoiczek Wentylacji</title>
+    <link rel="icon" type="image/svg+xml" href="image/title-swear-jar.svg">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Słoiczek Wentylacji</h1>
+            <h1>Bluzniodmuch</h1>
             <p class="subtitle">Kto dziś najbardziej "wentyluje"?</p>
             <nav>
                 <a href="index.html" class="active">Tablica</a>
-                <a href="shop.html">Nagrody/Kary</a>
+                <a href="shop.html">Sklep</a>
                 <a href="trophies.html">Trofea</a>
                 <a href="settings.html">Ustawienia</a>
             </nav>
-            <div class="sync-indicator" id="syncIndicator" title="Kliknij aby zsynchronizować">
-                <span id="syncIcon">⚪</span>
-                <span id="syncText">Offline</span>
-            </div>
         </header>
 
         <main>
@@ -30,7 +27,7 @@
                 <div class="period-tabs">
                     <button class="tab-btn active" data-period="month">Miesiąc</button>
                     <button class="tab-btn" data-period="year">Rok</button>
-                    <button class="tab-btn" data-period="all">Wszech czasów</button>
+                    <button class="tab-btn" data-period="all">Ogółem</button>
                 </div>
 
                 <div class="current-period">
@@ -52,7 +49,7 @@
 
             <section class="clickers">
                 <h2>Dodaj Przekleństwo</h2>
-                <p class="clicker-info">Kliknij swój przycisk, gdy "wentyl" Ci się wyrwał!</p>
+                <p class="clicker-info">Kliknij przycisk osoby, której "wentyl" się wyrwał!</p>
 
                 <div class="clicker-grid" id="clickerGrid">
                 </div>
@@ -71,13 +68,17 @@
                     </div>
                     <div class="stat-card">
                         <span class="stat-value" id="totalAll">0</span>
-                        <span class="stat-label">Wszech czasów</span>
+                        <span class="stat-label">Ogółem</span>
                     </div>
                 </div>
             </section>
         </main>
 
         <footer>
+            <div class="sync-indicator" id="syncIndicator" title="Kliknij aby zsynchronizować">
+                <span id="syncIcon">⚪</span>
+                <span id="syncText">Offline</span>
+            </div>
             <p>Zespół Wentylacji &copy; 2025</p>
         </footer>
     </div>
