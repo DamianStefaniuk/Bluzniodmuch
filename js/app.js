@@ -92,7 +92,7 @@ function handleClick(playerName, cardElement) {
         balanceElement.className = `player-total ${balance >= 0 ? 'positive' : 'negative'}`;
     }
 
-    // Sprawdz osiagniecia
+    // Sprawdź osiągnięcia
     const newAchievements = checkAndAwardAchievements(playerName);
     newAchievements.forEach(achievement => {
         showAchievementNotification(achievement);

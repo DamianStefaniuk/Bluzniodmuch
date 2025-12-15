@@ -1,72 +1,72 @@
 /**
- * Bluzniodmuch - System automatycznych osiagniec
+ * Bluzniodmuch - System automatycznych osiągnięć
  *
- * INSTRUKCJA DODAWANIA NOWYCH OSIAGNIEC:
+ * INSTRUKCJA DODAWANIA NOWYCH OSIĄGNIĘĆ:
  *
  * 1. Dodaj nowy obiekt do INDIVIDUAL_ACHIEVEMENTS lub TEAM_ACHIEVEMENTS
- * 2. Kazde osiagniecie musi miec:
+ * 2. Każde osiągnięcie musi mieć:
  *    - id: unikalny identyfikator (string)
- *    - name: nazwa wyswietlana
- *    - description: opis jak zdobyc
+ *    - name: nazwa wyświetlana
+ *    - description: opis jak zdobyć
  *    - icon: emoji
  *    - condition: funkcja(playerData, allPlayersData, playerName) => boolean
  *
- * Przyklad dodania nowego osiagniecia:
+ * Przykład dodania nowego osiągnięcia:
  * {
  *     id: "super_curser",
  *     name: "Super Przeklinacz",
- *     description: "200 przeklenstw lacznie",
+ *     description: "200 przekleństw łącznie",
  *     icon: "💀",
  *     condition: (player) => (player.swearCount || 0) >= 200
  * }
  */
 
-// Klucz localStorage dla osiagniec
+// Klucz localStorage dla osiągnięć
 const ACHIEVEMENTS_STORAGE_KEY = 'bluzniodmuch_achievements';
 
 // ============================================
-// OSIAGNIECIA INDYWIDUALNE
+// OSIĄGNIĘCIA INDYWIDUALNE
 // ============================================
 const INDIVIDUAL_ACHIEVEMENTS = [
     {
         id: "first_swear",
         name: "Inicjacja",
-        description: "Pierwsze przeklenstwo w sloiczku",
+        description: "Pierwsze przekleństwo w słoiczku",
         icon: "🎯",
         condition: (player) => (player.swearCount || 0) >= 1
     },
     {
         id: "ten_swears",
-        name: "Poczatkujacy",
-        description: "10 przeklenstw lacznie",
+        name: "Początkujący",
+        description: "10 przekleństw łącznie",
         icon: "🌱",
         condition: (player) => (player.swearCount || 0) >= 10
     },
     {
         id: "twenty_five_swears",
         name: "Regularny",
-        description: "25 przeklenstw lacznie",
+        description: "25 przekleństw łącznie",
         icon: "📈",
         condition: (player) => (player.swearCount || 0) >= 25
     },
     {
         id: "fifty_swears",
         name: "Weteran",
-        description: "50 przeklenstw lacznie",
+        description: "50 przekleństw łącznie",
         icon: "⭐",
         condition: (player) => (player.swearCount || 0) >= 50
     },
     {
         id: "hundred_swears",
         name: "Legenda",
-        description: "100 przeklenstw lacznie",
+        description: "100 przekleństw łącznie",
         icon: "🏆",
         condition: (player) => (player.swearCount || 0) >= 100
     },
     {
         id: "first_penalty",
         name: "Pokutnik",
-        description: "Wykonaj pierwsza kare",
+        description: "Wykonaj pierwszą karę",
         icon: "🙏",
         condition: (player, allData) => {
             const purchases = allData.purchases || [];
@@ -76,7 +76,7 @@ const INDIVIDUAL_ACHIEVEMENTS = [
     {
         id: "first_reward",
         name: "Nagrodzony",
-        description: "Odbierz pierwsza nagrode",
+        description: "Odbierz pierwszą nagrodę",
         icon: "🎁",
         condition: (player, allData) => {
             const purchases = allData.purchases || [];
@@ -86,65 +86,65 @@ const INDIVIDUAL_ACHIEVEMENTS = [
     {
         id: "positive_balance",
         name: "W Plusie",
-        description: "Osiagnij dodatni bilans punktow",
+        description: "Osiągnij dodatni bilans punktów",
         icon: "📊",
         condition: (player) => (player.total || 0) > 0
     },
     {
         id: "ten_positive",
         name: "Dobra Passa",
-        description: "Osiagnij 10 punktow dodatnich",
+        description: "Osiągnij 10 punktów dodatnich",
         icon: "🌟",
         condition: (player) => (player.total || 0) >= 10
     },
     {
         id: "twenty_positive",
         name: "Wzorowy",
-        description: "Osiagnij 20 punktow dodatnich",
+        description: "Osiągnij 20 punktów dodatnich",
         icon: "🏅",
         condition: (player) => (player.total || 0) >= 20
     },
     {
         id: "fifty_positive",
-        name: "Swiety",
-        description: "Osiagnij 50 punktow dodatnich",
+        name: "Święty",
+        description: "Osiągnij 50 punktów dodatnich",
         icon: "😇",
         condition: (player) => (player.total || 0) >= 50
     },
     {
         id: "deep_negative",
         name: "Dno",
-        description: "Spadnij do -50 punktow",
+        description: "Spadnij do -50 punktów",
         icon: "🕳️",
         condition: (player) => (player.total || 0) <= -50
     },
     {
         id: "comeback",
-        name: "Powrot",
-        description: "Wyjdz z ujemnego bilansu na dodatni",
+        name: "Powrót",
+        description: "Wyjdź z ujemnego bilansu na dodatni",
         icon: "🔄",
         condition: (player) => {
-            // Sprawdz czy gracz mial kiedys ujemny bilans i teraz ma dodatni
+            // Sprawdź czy gracz miał kiedyś ujemny bilans i teraz ma dodatni
             return (player.swearCount || 0) > 0 && (player.total || 0) > 0;
         }
     },
     {
         id: "clean_week",
-        name: "Swiety Tydzien",
-        description: "Zdobadz bonus za tydzien bez przeklenstwa",
+        name: "Święty Tydzień",
+        description: "Zdobądź bonus za tydzień bez przekleństwa",
         icon: "📅",
         condition: (player) => (player.rewardedInactiveWeeks || 0) >= 1
     },
     {
         id: "clean_month",
-        name: "Swiety Miesiac",
-        description: "Caly miesiac bez przeklenstwa",
+        name: "Święty Miesiąc",
+        description: "Cały miesiąc bez przekleństwa",
         icon: "🗓️",
         condition: (player) => player.lastMonthBonusCheck !== null && player.lastMonthBonusCheck !== undefined
     },
     {
         id: "five_penalties",
-        name: "Pokuty Mistrz",
+        name: "Mistrz Pokuty",
         description: "Wykonaj 5 kar",
         icon: "⚖️",
         condition: (player, allData, playerName) => {
@@ -156,13 +156,13 @@ const INDIVIDUAL_ACHIEVEMENTS = [
 ];
 
 // ============================================
-// OSIAGNIECIA ZESPOLOWE
+// OSIĄGNIĘCIA ZESPOŁOWE
 // ============================================
 const TEAM_ACHIEVEMENTS = [
     {
         id: "team_first",
         name: "Start",
-        description: "Pierwsze przeklenstwo w zespole",
+        description: "Pierwsze przekleństwo w zespole",
         icon: "🚀",
         condition: (allData) => {
             const totalSwears = Object.values(allData.players || {})
@@ -172,8 +172,8 @@ const TEAM_ACHIEVEMENTS = [
     },
     {
         id: "team_fifty",
-        name: "Polowa Setki",
-        description: "50 przeklenstw zespolu lacznie",
+        name: "Połowa Setki",
+        description: "50 przekleństw zespołu łącznie",
         icon: "5️⃣",
         condition: (allData) => {
             const totalSwears = Object.values(allData.players || {})
@@ -183,8 +183,8 @@ const TEAM_ACHIEVEMENTS = [
     },
     {
         id: "team_hundred",
-        name: "Setka Zespolowa",
-        description: "100 przeklenstw zespolu lacznie",
+        name: "Setka Zespołowa",
+        description: "100 przekleństw zespołu łącznie",
         icon: "💯",
         condition: (allData) => {
             const totalSwears = Object.values(allData.players || {})
@@ -194,8 +194,8 @@ const TEAM_ACHIEVEMENTS = [
     },
     {
         id: "team_five_hundred",
-        name: "Piecsetka",
-        description: "500 przeklenstw zespolu lacznie",
+        name: "Pięćsetka",
+        description: "500 przekleństw zespołu łącznie",
         icon: "🎯",
         condition: (allData) => {
             const totalSwears = Object.values(allData.players || {})
@@ -205,8 +205,8 @@ const TEAM_ACHIEVEMENTS = [
     },
     {
         id: "team_thousand",
-        name: "Tysiac Wentyli",
-        description: "1000 przeklenstw zespolu lacznie",
+        name: "Tysiąc Wentyli",
+        description: "1000 przekleństw zespołu łącznie",
         icon: "🏅",
         condition: (allData) => {
             const totalSwears = Object.values(allData.players || {})
@@ -216,8 +216,8 @@ const TEAM_ACHIEVEMENTS = [
     },
     {
         id: "all_participated",
-        name: "Wszyscy na Pokladzie",
-        description: "Kazdy czlonek zespolu ma min. 1 przeklenstwo",
+        name: "Wszyscy na Pokładzie",
+        description: "Każdy członek zespołu ma min. 1 przekleństwo",
         icon: "🤝",
         condition: (allData) => {
             const players = Object.values(allData.players || {});
@@ -246,11 +246,11 @@ const TEAM_ACHIEVEMENTS = [
 ];
 
 // ============================================
-// FUNKCJE ZARZADZANIA OSIAGNIECIAMI
+// FUNKCJE ZARZĄDZANIA OSIĄGNIĘCIAMI
 // ============================================
 
 /**
- * Pobiera przyznane osiagniecia z localStorage
+ * Pobiera przyznane osiągnięcia z localStorage
  */
 function getAwardedAchievements() {
     const stored = localStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
@@ -261,15 +261,15 @@ function getAwardedAchievements() {
 }
 
 /**
- * Zapisuje przyznane osiagniecia do localStorage
+ * Zapisuje przyznane osiągnięcia do localStorage
  */
 function saveAwardedAchievements(awarded) {
     localStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(awarded));
 }
 
 /**
- * Sprawdza i przyznaje osiagniecia dla gracza
- * Zwraca tablice nowo przyznanych osiagniec
+ * Sprawdza i przyznaje osiągnięcia dla gracza
+ * Zwraca tablicę nowo przyznanych osiągnięć
  */
 function checkAndAwardAchievements(playerName) {
     const data = getData();
@@ -279,19 +279,19 @@ function checkAndAwardAchievements(playerName) {
     const awarded = getAwardedAchievements();
     const newlyAwarded = [];
 
-    // Inicjalizuj strukture dla gracza jesli nie istnieje
+    // Inicjalizuj strukturę dla gracza jeśli nie istnieje
     if (!awarded.individual[playerName]) {
         awarded.individual[playerName] = [];
     }
 
-    // Sprawdz osiagniecia indywidualne
+    // Sprawdź osiągnięcia indywidualne
     INDIVIDUAL_ACHIEVEMENTS.forEach(achievement => {
-        // Pomijaj juz przyznane
+        // Pomijaj już przyznane
         if (awarded.individual[playerName].some(a => a.id === achievement.id)) {
             return;
         }
 
-        // Sprawdz warunek
+        // Sprawdź warunek
         if (achievement.condition(playerData, data, playerName)) {
             const awardedAchievement = {
                 id: achievement.id,
@@ -307,14 +307,14 @@ function checkAndAwardAchievements(playerName) {
         }
     });
 
-    // Sprawdz osiagniecia zespolowe
+    // Sprawdź osiągnięcia zespołowe
     TEAM_ACHIEVEMENTS.forEach(achievement => {
-        // Pomijaj juz przyznane
+        // Pomijaj już przyznane
         if (awarded.team.some(a => a.id === achievement.id)) {
             return;
         }
 
-        // Sprawdz warunek
+        // Sprawdź warunek
         if (achievement.condition(data)) {
             const awardedAchievement = {
                 id: achievement.id,
@@ -329,7 +329,7 @@ function checkAndAwardAchievements(playerName) {
         }
     });
 
-    // Zapisz jesli byly nowe osiagniecia
+    // Zapisz jeśli były nowe osiągnięcia
     if (newlyAwarded.length > 0) {
         saveAwardedAchievements(awarded);
     }
@@ -338,7 +338,7 @@ function checkAndAwardAchievements(playerName) {
 }
 
 /**
- * Sprawdza osiagniecia dla wszystkich graczy
+ * Sprawdza osiągnięcia dla wszystkich graczy
  */
 function checkAllPlayersAchievements() {
     const allNewlyAwarded = [];
@@ -350,25 +350,25 @@ function checkAllPlayersAchievements() {
 }
 
 // ============================================
-// FUNKCJE POMOCNICZE (kompatybilnosc z trophies.js)
+// FUNKCJE POMOCNICZE (kompatybilność z trophies.js)
 // ============================================
 
 /**
- * Pobiera wszystkie osiagniecia indywidualne
+ * Pobiera wszystkie osiągnięcia indywidualne
  */
 function getAllIndividualAchievements() {
     return INDIVIDUAL_ACHIEVEMENTS;
 }
 
 /**
- * Pobiera wszystkie osiagniecia zespolowe
+ * Pobiera wszystkie osiągnięcia zespołowe
  */
 function getAllTeamAchievements() {
     return TEAM_ACHIEVEMENTS;
 }
 
 /**
- * Pobiera przyznane osiagniecia dla gracza
+ * Pobiera przyznane osiągnięcia dla gracza
  */
 function getPlayerAwardedAchievements(playerName) {
     const awarded = getAwardedAchievements();
@@ -385,7 +385,7 @@ function getPlayerAwardedAchievements(playerName) {
 }
 
 /**
- * Pobiera przyznane osiagniecia zespolowe
+ * Pobiera przyznane osiągnięcia zespołowe
  */
 function getTeamAwardedAchievements() {
     const awarded = getAwardedAchievements();
@@ -401,7 +401,7 @@ function getTeamAwardedAchievements() {
 }
 
 /**
- * Sprawdza czy gracz ma dane osiagniecie
+ * Sprawdza czy gracz ma dane osiągnięcie
  */
 function hasAchievement(playerName, achievementId) {
     const awarded = getAwardedAchievements();
@@ -410,7 +410,7 @@ function hasAchievement(playerName, achievementId) {
 }
 
 /**
- * Sprawdza czy zespol ma dane osiagniecie
+ * Sprawdza czy zespół ma dane osiągnięcie
  */
 function teamHasAchievement(achievementId) {
     const awarded = getAwardedAchievements();
@@ -418,7 +418,7 @@ function teamHasAchievement(achievementId) {
 }
 
 /**
- * Pobiera statystyki osiagniec gracza
+ * Pobiera statystyki osiągnięć gracza
  */
 function getPlayerAchievementStats(playerName) {
     const playerAwarded = getPlayerAwardedAchievements(playerName);
@@ -430,7 +430,7 @@ function getPlayerAchievementStats(playerName) {
 }
 
 /**
- * Wyswietla powiadomienie o nowym osiagnieciu
+ * Wyświetla powiadomienie o nowym osiągnięciu
  */
 function showAchievementNotification(achievement) {
     const notification = document.createElement('div');
@@ -438,7 +438,7 @@ function showAchievementNotification(achievement) {
     notification.innerHTML = `
         <div class="achievement-icon">${achievement.icon}</div>
         <div class="achievement-info">
-            <div class="achievement-title">Nowe osiagniecie!</div>
+            <div class="achievement-title">Nowe osiągnięcie!</div>
             <div class="achievement-name">${achievement.name}</div>
         </div>
     `;

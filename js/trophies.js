@@ -19,37 +19,56 @@ document.addEventListener('DOMContentLoaded', () => {
  * Renderuje trofea zespołowe
  */
 function renderTeamTrophies() {
-    const grid = document.getElementById('teamTrophiesGrid');
+    const display = document.getElementById('teamTrophyDisplay');
     const allTeamAchievements = getAllTeamAchievements();
     const awardedTeam = getTeamAwardedAchievements();
 
-    grid.innerHTML = '';
+    const total = allTeamAchievements.length;
+    const earned = awardedTeam.length;
+    const percentage = Math.round((earned / total) * 100);
 
-    allTeamAchievements.forEach(achievement => {
-        const awarded = awardedTeam.find(a => a.id === achievement.id);
-        const isUnlocked = !!awarded;
+    display.innerHTML = '';
 
-        const card = document.createElement('div');
-        card.className = `trophy-card ${isUnlocked ? 'unlocked' : 'locked'}`;
-
-        card.innerHTML = `
-            <div class="trophy-icon">${achievement.icon}</div>
-            <div class="trophy-name">${achievement.name}</div>
-            <div class="trophy-description">${achievement.description}</div>
-            ${isUnlocked ? `<div class="trophy-date">Zdobyte: ${formatDate(awarded.date)}</div>` : ''}
-            ${awarded?.note ? `<div class="trophy-note">${awarded.note}</div>` : ''}
-        `;
-
-        grid.appendChild(card);
-    });
+    // Nagłówek ze statystykami
+    const header = document.createElement('div');
+    header.className = 'player-stats-header';
+    header.innerHTML = `
+        <p>Zdobyte trofea: <strong>${earned}/${total}</strong> (${percentage}%)</p>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: ${percentage}%"></div>
+        </div>
+    `;
+    display.appendChild(header);
 
     // Pokaż komunikat jeśli brak trofeów
     if (awardedTeam.length === 0) {
         const noTrophies = document.createElement('p');
         noTrophies.className = 'no-trophies';
         noTrophies.textContent = 'Zespół nie zdobył jeszcze żadnych trofeów. Czas to zmienić!';
-        grid.appendChild(noTrophies);
+        display.appendChild(noTrophies);
+        return;
     }
+
+    // Siatka trofeów - tylko zdobyte
+    const grid = document.createElement('div');
+    grid.className = 'player-trophies-list';
+
+    awardedTeam.forEach(achievement => {
+        const card = document.createElement('div');
+        card.className = 'trophy-card unlocked';
+
+        card.innerHTML = `
+            <div class="trophy-icon">${achievement.icon}</div>
+            <div class="trophy-name">${achievement.name}</div>
+            <div class="trophy-description">${achievement.description}</div>
+            <div class="trophy-date">Zdobyte: ${formatDate(achievement.date)}</div>
+            ${achievement.note ? `<div class="trophy-note">${achievement.note}</div>` : ''}
+        `;
+
+        grid.appendChild(card);
+    });
+
+    display.appendChild(grid);
 }
 
 /**

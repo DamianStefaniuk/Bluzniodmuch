@@ -8,11 +8,15 @@
 const SYNC_STORAGE_KEYS = {
     GIST_ID: 'bluzniodmuch_gist_id',
     GITHUB_TOKEN: 'bluzniodmuch_github_token',
+    GITHUB_USERNAME: 'bluzniodmuch_github_username',
     LAST_SYNC: 'bluzniodmuch_last_sync'
 };
 
 const GIST_FILENAME = 'bluzniodmuch_data.json';
 const GIST_ACHIEVEMENTS_FILENAME = 'bluzniodmuch_achievements.json';
+
+// Lista administratorów (GitHub usernames) - tylko ci użytkownicy mają dostęp do zarządzania danymi
+const ADMIN_USERS = ['DamianStefaniuk'];
 
 /**
  * Sprawdza czy synchronizacja jest skonfigurowana
@@ -38,9 +42,12 @@ function getGithubToken() {
 /**
  * Zapisuje konfigurację synchronizacji
  */
-function saveSyncConfig(gistId, githubToken) {
+function saveSyncConfig(gistId, githubToken, username = null) {
     localStorage.setItem(SYNC_STORAGE_KEYS.GIST_ID, gistId);
     localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN, githubToken);
+    if (username) {
+        localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME, username);
+    }
 }
 
 /**
@@ -49,7 +56,31 @@ function saveSyncConfig(gistId, githubToken) {
 function clearSyncConfig() {
     localStorage.removeItem(SYNC_STORAGE_KEYS.GIST_ID);
     localStorage.removeItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN);
+    localStorage.removeItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME);
     localStorage.removeItem(SYNC_STORAGE_KEYS.LAST_SYNC);
+}
+
+/**
+ * Pobiera GitHub username z localStorage
+ */
+function getGithubUsername() {
+    return localStorage.getItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME);
+}
+
+/**
+ * Zapisuje GitHub username
+ */
+function saveGithubUsername(username) {
+    localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME, username);
+}
+
+/**
+ * Sprawdza czy zalogowany użytkownik jest administratorem
+ */
+function isAdmin() {
+    const username = getGithubUsername();
+    if (!username) return false;
+    return ADMIN_USERS.includes(username);
 }
 
 /**

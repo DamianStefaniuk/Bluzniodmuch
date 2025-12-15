@@ -618,6 +618,58 @@ footer {
     border: 2px solid var(--secondary);
 }
 
+.action-card.warning {
+    border: 2px solid #f39c12;
+}
+
+/* Auth required notice */
+.auth-required-notice {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 25px;
+    background: linear-gradient(135deg, rgba(52, 73, 94, 0.8), rgba(44, 62, 80, 0.9));
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.auth-required-notice .notice-icon {
+    font-size: 3rem;
+    opacity: 0.8;
+}
+
+.auth-required-notice .notice-text {
+    flex: 1;
+}
+
+.auth-required-notice .notice-text strong {
+    display: block;
+    font-size: 1.2rem;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.auth-required-notice .notice-text p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Admin badge */
+.admin-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--gold), #f39c12);
+    color: #1a1a2e;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* Sync indicator for main page */
 .sync-indicator {
     display: flex;

@@ -5,8 +5,33 @@
 document.addEventListener('DOMContentLoaded', () => {
     initializeData();
     updateSyncStatus();
+    updateDataManagementAccess();
     setupSettingsEventListeners();
 });
+
+/**
+ * Aktualizuje dostęp do sekcji zarządzania danymi
+ */
+function updateDataManagementAccess() {
+    const authNotice = document.getElementById('authRequiredNotice');
+    const dataActions = document.getElementById('dataActionsContainer');
+    const dataManagementSection = document.getElementById('dataManagementSection');
+
+    if (isSyncConfigured() && isAdmin()) {
+        // Użytkownik jest zalogowany jako admin - pokaż sekcję i akcje
+        dataManagementSection.style.display = 'block';
+        authNotice.style.display = 'none';
+        dataActions.style.display = 'grid';
+    } else if (isSyncConfigured()) {
+        // Użytkownik jest zalogowany ale nie jest adminem - ukryj całą sekcję
+        dataManagementSection.style.display = 'none';
+    } else {
+        // Użytkownik nie jest zalogowany - pokaż sekcję z komunikatem
+        dataManagementSection.style.display = 'block';
+        authNotice.style.display = 'flex';
+        dataActions.style.display = 'none';
+    }
+}
 
 /**
  * Aktualizuje status synchronizacji
@@ -19,8 +44,11 @@ function updateSyncStatus() {
     const syncSetup = document.getElementById('syncSetup');
 
     if (isSyncConfigured()) {
+        const username = getGithubUsername();
+        const adminBadge = isAdmin() ? ' <span class="admin-badge">Admin</span>' : '';
+
         statusIcon.textContent = '🟢';
-        statusLabel.textContent = 'Połączono z GitHub Gist';
+        statusLabel.innerHTML = `Zalogowano jako: <strong>${username}</strong>${adminBadge}`;
 
         const lastSync = getLastSyncTime();
         if (lastSync) {
@@ -43,6 +71,9 @@ function updateSyncStatus() {
         syncActions.style.display = 'none';
         syncSetup.querySelector('.setup-form').style.display = 'block';
     }
+
+    // Aktualizuj dostęp do zarządzania danymi
+    updateDataManagementAccess();
 }
 
 /**
@@ -101,17 +132,17 @@ function setupSettingsEventListeners() {
             document.getElementById('connectBtn').disabled = true;
             document.getElementById('connectBtn').textContent = 'Łączenie...';
 
-            // Testuj token
-            await testConnection(token);
+            // Testuj token i pobierz username
+            const username = await testConnection(token);
 
-            // Zapisz konfigurację
-            saveSyncConfig(gistId, token);
+            // Zapisz konfigurację z username
+            saveSyncConfig(gistId, token, username);
 
             // Spróbuj pobrać dane
             const result = await syncData();
 
             if (result.success) {
-                showResult('Połączono i zsynchronizowano pomyślnie!');
+                showResult(`Połączono jako ${username}!`);
                 updateSyncStatus();
             } else {
                 clearSyncConfig();
@@ -138,20 +169,20 @@ function setupSettingsEventListeners() {
             document.getElementById('createNewBtn').disabled = true;
             document.getElementById('createNewBtn').textContent = 'Tworzenie...';
 
-            // Testuj token
+            // Testuj token i pobierz username
             const username = await testConnection(token);
 
             // Utwórz nowy Gist
             const gistId = await createNewGist(token);
 
-            // Zapisz konfigurację
-            saveSyncConfig(gistId, token);
+            // Zapisz konfigurację z username
+            saveSyncConfig(gistId, token, username);
 
             // Wyślij aktualne dane
             const currentData = getData();
             await saveToGist(currentData);
 
-            showResult(`Utworzono nowy Gist! ID: ${gistId}`);
+            showResult(`Utworzono nowy Gist jako ${username}!`);
             updateSyncStatus();
 
         } catch (error) {
@@ -240,6 +271,14 @@ function setupSettingsEventListeners() {
                 initializeData();
                 showResult('Dane lokalne zostały zresetowane');
             }
+        }
+    });
+
+    // Reset osiągnięć
+    document.getElementById('resetAchievementsBtn').addEventListener('click', () => {
+        if (confirm('Czy na pewno chcesz usunąć wszystkie zdobyte osiągnięcia?')) {
+            localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
+            showResult('Osiągnięcia zostały zresetowane');
         }
     });
 }

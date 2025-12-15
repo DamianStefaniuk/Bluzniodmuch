@@ -93,10 +93,18 @@
                 </div>
             </section>
 
-            <section class="data-management">
+            <section class="data-management" id="dataManagementSection">
                 <h2>Zarządzanie danymi</h2>
 
-                <div class="data-actions">
+                <div class="auth-required-notice" id="authRequiredNotice">
+                    <div class="notice-icon">🔒</div>
+                    <div class="notice-text">
+                        <strong>Wymagana autoryzacja</strong>
+                        <p>Aby uzyskać dostęp do zarządzania danymi, skonfiguruj połączenie z GitHub Gist powyżej.</p>
+                    </div>
+                </div>
+
+                <div class="data-actions" id="dataActionsContainer" style="display: none;">
                     <div class="action-card">
                         <h3>Eksport danych</h3>
                         <p>Pobierz kopię zapasową wszystkich danych jako plik JSON.</p>
@@ -115,6 +123,12 @@
                         <p>Usuwa wszystkie lokalne dane. Nie wpływa na dane w Gist.</p>
                         <button class="btn btn-danger" id="resetBtn">Resetuj dane</button>
                     </div>
+
+                    <div class="action-card warning">
+                        <h3>Resetuj osiągnięcia</h3>
+                        <p>Usuwa wszystkie zdobyte osiągnięcia (indywidualne i zespołowe).</p>
+                        <button class="btn btn-warning" id="resetAchievementsBtn">Resetuj osiągnięcia</button>
+                    </div>
                 </div>
             </section>
         </main>
@@ -126,6 +140,7 @@
 
     <script src="js/data.js"></script>
     <script src="js/sync.js"></script>
+    <script src="js/achievements.js"></script>
     <script src="js/settings.js"></script>
 </body>
 </html>

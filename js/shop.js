@@ -291,7 +291,7 @@ async function completePurchase() {
         await syncData();
     }
 
-    // Sprawdz osiagniecia
+    // Sprawdź osiągnięcia
     if (typeof checkAndAwardAchievements === 'function') {
         const newAchievements = checkAndAwardAchievements(selectedPlayer);
         newAchievements.forEach(achievement => {

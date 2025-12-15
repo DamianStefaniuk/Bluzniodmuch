@@ -25,31 +25,13 @@ const SHOP_ITEMS = [
     // NAGRODY - kupowane za punkty dodatnie
     // ============================================
     {
-        id: "free_day",
-        name: "Dzień bez obowiązków",
-        description: "Przez jeden dzień nie musisz robić niczego dla zespołu!",
-        cost: 30,
-        icon: "🏖️",
+        id: "beer_meeting",
+        name: "Piwne spotkanie",
+        description: "Idziecie na piwo po pracy, pierwsze Twoje piwo, opłaca zespół!",
+        cost: 40,
+        icon: "🍺",
         type: "reward",
-        category: "personal"
-    },
-    {
-        id: "late_arrival",
-        name: "Późniejsze przyjście",
-        description: "Możesz przyjść 30 minut później do pracy",
-        cost: 15,
-        icon: "😴",
-        type: "reward",
-        category: "personal"
-    },
-    {
-        id: "early_leave",
-        name: "Wcześniejsze wyjście",
-        description: "Możesz wyjść 30 minut wcześniej z pracy",
-        cost: 15,
-        icon: "🏃",
-        type: "reward",
-        category: "personal"
+        category: "team"
     },
     {
         id: "coffee_served",
@@ -60,71 +42,53 @@ const SHOP_ITEMS = [
         type: "reward",
         category: "personal"
     },
-    {
-        id: "music_choice",
-        name: "DJ na dzień",
-        description: "Przez cały dzień Ty wybierasz muzykę w biurze",
-        cost: 10,
-        icon: "🎵",
-        type: "reward",
-        category: "personal"
-    },
-    {
-        id: "best_chair",
-        name: "Najlepsze krzesło",
-        description: "Dostajesz najwygodniejsze krzesło na tydzień",
-        cost: 25,
-        icon: "🪑",
-        type: "reward",
-        category: "personal"
-    },
-    {
-        id: "lunch_treat",
-        name: "Lunch fundowany",
-        description: "Zespół funduje Ci lunch",
-        cost: 40,
-        icon: "🍽️",
-        type: "reward",
-        category: "team"
-    },
-    {
-        id: "parking_spot",
-        name: "Najlepsze miejsce parkingowe",
-        description: "Przez tydzień masz zarezerwowane najlepsze miejsce",
-        cost: 20,
-        icon: "🅿️",
-        type: "reward",
-        category: "personal"
-    },
 
     // ============================================
     // KARY - kupowane za ujemne punkty
     // Wykonanie kary poprawia wynik gracza
     // ============================================
     {
-        id: "pizza_team",
-        name: "Pizza dla zespołu",
-        description: "Stawiasz pizzę dla całego zespołu!",
+        id: "beer_apology",
+        name: "Przepraszam piwem",
+        description: "Idziecie na piwo po pracy, pierwsze browary, stawiasz Ty!",
         cost: -50,
+        icon: "🍺",
+        type: "penalty",
+        category: "team"
+    },
+    {
+        id: "pizza_time",
+        name: "Pizza time!",
+        description: "Stawiasz pizzę dla całego zespołu!",
+        cost: -30,
         icon: "🍕",
         type: "penalty",
         category: "team"
     },
     {
-        id: "cake_team",
-        name: "Ciasto dla zespołu",
-        description: "Przynosisz ciasto/tort dla kolegów",
+        id: "coffe_beans",
+        name: "Sudo Coffee",
+        description: "Kupujesz kawę do korzystania dla zespołu",
         cost: -30,
-        icon: "🎂",
+        icon: "☕",
         type: "penalty",
         category: "team"
     },
     {
-        id: "coffee_team",
-        name: "Kawa dla wszystkich",
-        description: "Fundujesz rundę kawy z automatu dla zespołu",
-        cost: -20,
-        icon: "☕",
+        id: "tea_bags",
+        name: "Sir it's Tea",
+        description: "Kupujesz herbatę do korzystania dla zespołu",
+        cost: -30,
+        icon: "🍵",
+        type: "penalty",
+        category: "team"
+    },
+    {
+        id: "cake_team",
+        name: "There really was a cake...",
+        description: "Przynosisz ciasto dla zespołu",
+        cost: -30,
+        icon: "🎂",
         type: "penalty",
         category: "team"
     },
@@ -132,46 +96,37 @@ const SHOP_ITEMS = [
         id: "donuts_team",
         name: "Pączki dla zespołu",
         description: "Przynosisz pączki dla wszystkich",
-        cost: -25,
+        cost: -20,
         icon: "🍩",
         type: "penalty",
         category: "team"
     },
     {
-        id: "clean_desk",
-        name: "Sprzątanie biurek",
-        description: "Sprzątasz wszystkie biurka w pokoju",
-        cost: -15,
-        icon: "🧹",
-        type: "penalty",
-        category: "personal"
-    },
-    {
-        id: "make_tea",
-        name: "Herbata na życzenie",
-        description: "Przez tydzień robisz herbatę na życzenie kolegów",
+        id: "dance_break",
+        name: "Taneczna przerwa",
+        description: "Musisz zatańczyć przed zespołem",
         cost: -20,
-        icon: "🫖",
+        icon: "💃",
         type: "penalty",
-        category: "personal"
+        category: "fun"
     },
     {
-        id: "water_plants",
-        name: "Opiekun roślin",
-        description: "Przez miesiąc podlewasz rośliny w biurze",
-        cost: -10,
-        icon: "🌱",
+        id: "gym_session",
+        name: "Sesja na siłowni",
+        description: "Musisz zrobić krótką sesję ćwiczeń w pokoju",
+        cost: -20,
+        icon: "🏋️",
         type: "penalty",
-        category: "personal"
+        category: "fun"
     },
     {
-        id: "trash_duty",
-        name: "Dyżur śmieciowy",
-        description: "Przez tydzień wynosisz śmieci z pokoju",
-        cost: -15,
-        icon: "🗑️",
+        id: "karaoke",
+        name: "Karaoke solo",
+        description: "Śpiewasz piosenkę wybraną przez zespół",
+        cost: -20,
+        icon: "🎤",
         type: "penalty",
-        category: "personal"
+        category: "fun"
     },
     {
         id: "silly_hat",
@@ -183,38 +138,20 @@ const SHOP_ITEMS = [
         category: "fun"
     },
     {
-        id: "compliment_day",
-        name: "Dzień komplementów",
-        description: "Przez cały dzień musisz komplementować kolegów",
-        cost: -8,
-        icon: "💬",
-        type: "penalty",
-        category: "fun"
-    },
-    {
-        id: "dance_break",
-        name: "Taneczna przerwa",
-        description: "Musisz zatańczyć przed zespołem",
-        cost: -12,
-        icon: "💃",
-        type: "penalty",
-        category: "fun"
-    },
-    {
-        id: "karaoke",
-        name: "Karaoke solo",
-        description: "Śpiewasz piosenkę wybraną przez zespół",
-        cost: -15,
-        icon: "🎤",
-        type: "penalty",
-        category: "fun"
-    },
-    {
         id: "joke_day",
         name: "Dzień dowcipów",
         description: "Musisz opowiedzieć 5 dowcipów (nawet słabych)",
-        cost: -6,
+        cost: -10,
         icon: "😂",
+        type: "penalty",
+        category: "fun"
+    },
+    {
+        id: "apologize",
+        name: "Moja wina!",
+        description: "Musisz przeprosić na chatcie zespołowym za swoje przekleństwa",
+        cost: -5,
+        icon: "🙏",
         type: "penalty",
         category: "fun"
     }
