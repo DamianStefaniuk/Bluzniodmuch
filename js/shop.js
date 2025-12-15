@@ -1,5 +1,10 @@
 /**
  * Bluzniodmuch - Logika sklepu
+ *
+ * NOWY SYSTEM:
+ * - Nagrody: kupowane za punkty dodatnie (koszt dodatni)
+ * - Kary: kupowane gdy mamy ujemne punkty (koszt ujemny)
+ *   Po wykonaniu kary, punkty są dodawane (poprawa statusu)
  */
 
 let selectedPlayer = 'Jacek';
@@ -10,16 +15,12 @@ let selectedItem = null;
  */
 document.addEventListener('DOMContentLoaded', async () => {
     initializeData();
-
-    // Sprawdź i zastosuj bonusy za nieaktywność
     applyInactivityBonuses();
-
     renderShop();
     renderPlayerBalances();
     renderPurchaseHistory();
     setupShopEventListeners();
 
-    // Synchronizuj jeśli skonfigurowane
     if (isSyncConfigured()) {
         await syncData();
         renderPlayerBalances();
@@ -28,66 +29,55 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Renderuje sklep z fantami
+ * Renderuje sklep z nagrodami i karami
  */
 function renderShop() {
-    const grid = document.getElementById('shopGrid');
-    const items = getShopItems();
+    const rewardsGrid = document.getElementById('rewardsGrid');
+    const penaltiesGrid = document.getElementById('penaltiesGrid');
 
-    grid.innerHTML = '';
-
-    // Grupuj po kategorii
-    const categories = {
-        team: { name: 'Fanty zespołowe', items: [] },
-        personal: { name: 'Fanty osobiste', items: [] },
-        fun: { name: 'Fanty zabawne', items: [] }
-    };
-
-    items.forEach(item => {
-        if (categories[item.category]) {
-            categories[item.category].items.push(item);
-        }
+    // Renderuj nagrody
+    const rewards = getRewards();
+    rewardsGrid.innerHTML = '';
+    rewards.forEach(item => {
+        const card = createShopItemCard(item, 'reward');
+        rewardsGrid.appendChild(card);
     });
 
-    // Renderuj każdą kategorię
-    Object.entries(categories).forEach(([key, category]) => {
-        if (category.items.length === 0) return;
-
-        const categoryHeader = document.createElement('h3');
-        categoryHeader.className = 'shop-category-header';
-        categoryHeader.textContent = category.name;
-        grid.appendChild(categoryHeader);
-
-        const categoryGrid = document.createElement('div');
-        categoryGrid.className = 'shop-category-grid';
-
-        category.items.forEach(item => {
-            const card = createShopItemCard(item);
-            categoryGrid.appendChild(card);
-        });
-
-        grid.appendChild(categoryGrid);
+    // Renderuj kary
+    const penalties = getPenalties();
+    penaltiesGrid.innerHTML = '';
+    penalties.forEach(item => {
+        const card = createShopItemCard(item, 'penalty');
+        penaltiesGrid.appendChild(card);
     });
 }
 
 /**
  * Tworzy kartę przedmiotu
  */
-function createShopItemCard(item) {
+function createShopItemCard(item, type) {
     const card = document.createElement('div');
-    card.className = 'shop-item-card';
+    card.className = `shop-item-card ${type}`;
     card.dataset.itemId = item.id;
+
+    const costDisplay = type === 'reward'
+        ? `${item.cost} pkt`
+        : `${Math.abs(item.cost)} pkt`;
+
+    const costLabel = type === 'reward' ? 'Koszt' : 'Wymaga';
+    const buttonText = type === 'reward' ? 'Odbierz nagrodę' : 'Wykonaj karę';
+    const buttonClass = type === 'reward' ? 'btn-success' : 'btn-warning';
 
     card.innerHTML = `
         <div class="shop-item-icon">${item.icon}</div>
         <div class="shop-item-name">${item.name}</div>
         <div class="shop-item-desc">${item.description}</div>
-        <div class="shop-item-cost">
-            <span class="cost-value">${item.cost}</span>
-            <span class="cost-label">pkt</span>
+        <div class="shop-item-cost ${type}">
+            <span class="cost-label">${costLabel}:</span>
+            <span class="cost-value">${costDisplay}</span>
         </div>
-        <button class="btn btn-primary shop-buy-btn" data-item-id="${item.id}">
-            Kup
+        <button class="btn ${buttonClass} shop-buy-btn" data-item-id="${item.id}" data-type="${type}">
+            ${buttonText}
         </button>
     `;
 
@@ -98,15 +88,20 @@ function createShopItemCard(item) {
  * Renderuje salda graczy
  */
 function renderPlayerBalances() {
+    const data = getData();
+
     PLAYERS.forEach(player => {
-        const balance = getPlayerBalance(player);
+        const playerData = data.players[player];
+        const balance = playerData ? (playerData.total || 0) : 0;
         const status = getPlayerStatus(balance);
 
         const balanceEl = document.getElementById(`balance-${player}`);
         const statusEl = document.getElementById(`status-${player}`);
 
         if (balanceEl) {
-            balanceEl.textContent = balance;
+            const balanceDisplay = balance >= 0 ? `+${balance}` : `${balance}`;
+            balanceEl.textContent = balanceDisplay;
+            balanceEl.className = `player-balance ${balance >= 0 ? 'positive' : 'negative'}`;
         }
 
         if (statusEl) {
@@ -118,25 +113,22 @@ function renderPlayerBalances() {
     // Aktualizuj aktywny przycisk
     document.querySelectorAll('.player-select-btn').forEach(btn => {
         const player = btn.dataset.player;
-        const balance = getPlayerBalance(player);
+        const playerData = data.players[player];
+        const balance = playerData ? (playerData.total || 0) : 0;
         const status = getPlayerStatus(balance);
         btn.style.borderColor = status.color;
     });
 }
 
 /**
- * Pobiera saldo gracza (całkowite punkty minus wydane)
+ * Pobiera bilans punktów gracza (może być dodatni lub ujemny)
  */
 function getPlayerBalance(playerName) {
     const data = getData();
     const player = data.players[playerName];
 
     if (!player) return 0;
-
-    const totalPoints = player.total || 0;
-    const spentPoints = player.spent || 0;
-
-    return Math.max(0, totalPoints - spentPoints);
+    return player.total || 0;
 }
 
 /**
@@ -148,7 +140,7 @@ function renderPurchaseHistory() {
     const purchases = data.purchases || [];
 
     if (purchases.length === 0) {
-        historyList.innerHTML = '<p class="no-history">Brak historii zakupów</p>';
+        historyList.innerHTML = '<p class="no-history">Brak historii</p>';
         return;
     }
 
@@ -168,15 +160,21 @@ function renderPurchaseHistory() {
             year: 'numeric'
         });
 
+        const isReward = purchase.type === 'reward';
+        const pointsChange = isReward ? `-${Math.abs(purchase.cost)}` : `+${Math.abs(purchase.cost)}`;
+        const changeClass = isReward ? 'negative' : 'positive';
+        const actionText = isReward ? 'odebrał nagrodę' : 'wykonał karę';
+
         return `
-            <div class="history-item">
+            <div class="history-item ${purchase.type}">
                 <span class="history-icon">${item?.icon || '🎁'}</span>
                 <div class="history-details">
                     <span class="history-player">${purchase.player}</span>
+                    <span class="history-action">${actionText}</span>
                     <span class="history-name">${item?.name || purchase.itemId}</span>
                 </div>
                 <div class="history-meta">
-                    <span class="history-cost">-${purchase.cost} pkt</span>
+                    <span class="history-cost ${changeClass}">${pointsChange} pkt</span>
                     <span class="history-date">${date}</span>
                 </div>
             </div>
@@ -185,25 +183,53 @@ function renderPurchaseHistory() {
 }
 
 /**
- * Otwiera modal potwierdzenia zakupu
+ * Otwiera modal potwierdzenia
  */
 function openPurchaseModal(item) {
     selectedItem = item;
     const balance = getPlayerBalance(selectedPlayer);
+    const isReward = item.type === 'reward';
 
-    document.getElementById('modalTitle').textContent = `Kupić "${item.name}"?`;
+    const modalTitle = isReward ? `Odebrać nagrodę "${item.name}"?` : `Wykonać karę "${item.name}"?`;
+    const actionText = isReward ? 'Odbieram!' : 'Wykonuję!';
+
+    document.getElementById('modalTitle').textContent = modalTitle;
     document.getElementById('modalDescription').textContent = item.description;
-    document.getElementById('modalCost').textContent = item.cost;
-    document.getElementById('modalBalance').textContent = balance;
 
+    const costEl = document.getElementById('modalCost');
+    const balanceEl = document.getElementById('modalBalance');
     const confirmBtn = document.getElementById('modalConfirm');
-    if (balance < item.cost) {
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Za mało punktów!';
+
+    if (isReward) {
+        // Nagroda - potrzebne punkty dodatnie
+        costEl.textContent = `${item.cost} pkt`;
+        balanceEl.textContent = balance >= 0 ? `+${balance} pkt` : `${balance} pkt`;
+
+        if (balance >= item.cost) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = actionText;
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Za mało punktów!';
+        }
     } else {
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Kupuję!';
+        // Kara - potrzebne punkty ujemne
+        costEl.textContent = `${Math.abs(item.cost)} pkt`;
+        balanceEl.textContent = balance >= 0 ? `+${balance} pkt` : `${balance} pkt`;
+
+        // Można wykonać karę jeśli mamy punkty <= cost (np. -10 <= -10)
+        if (balance <= item.cost) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = actionText;
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Niewystarczająco ujemny wynik!';
+        }
     }
+
+    // Zaktualizuj etykiety w modalu
+    document.getElementById('modalCostLabel').textContent = isReward ? 'Koszt:' : 'Wymaga min:';
+    document.getElementById('modalBalanceLabel').textContent = 'Twój bilans:';
 
     document.getElementById('purchaseModal').classList.add('active');
 }
@@ -217,25 +243,34 @@ function closePurchaseModal() {
 }
 
 /**
- * Realizuje zakup
+ * Realizuje zakup/wykonanie
  */
 async function completePurchase() {
     if (!selectedItem || !selectedPlayer) return;
 
     const balance = getPlayerBalance(selectedPlayer);
-    if (balance < selectedItem.cost) {
+    const isReward = selectedItem.type === 'reward';
+
+    // Sprawdź czy można wykonać akcję
+    if (isReward && balance < selectedItem.cost) {
         alert('Za mało punktów!');
+        return;
+    }
+    if (!isReward && balance > selectedItem.cost) {
+        alert('Niewystarczająco ujemny wynik!');
         return;
     }
 
     // Zapisz zakup
     const data = getData();
 
-    // Dodaj wydane punkty do gracza
-    if (!data.players[selectedPlayer].spent) {
-        data.players[selectedPlayer].spent = 0;
+    if (isReward) {
+        // Nagroda - odejmij punkty
+        data.players[selectedPlayer].total -= selectedItem.cost;
+    } else {
+        // Kara - dodaj punkty (poprawa statusu)
+        data.players[selectedPlayer].total += Math.abs(selectedItem.cost);
     }
-    data.players[selectedPlayer].spent += selectedItem.cost;
 
     // Dodaj do historii zakupów
     if (!data.purchases) {
@@ -245,6 +280,7 @@ async function completePurchase() {
         player: selectedPlayer,
         itemId: selectedItem.id,
         cost: selectedItem.cost,
+        type: selectedItem.type,
         date: new Date().toISOString()
     });
 
@@ -261,7 +297,10 @@ async function completePurchase() {
     closePurchaseModal();
 
     // Pokaż potwierdzenie
-    showNotification(`${selectedPlayer} odkupił: ${selectedItem.name}!`);
+    const message = isReward
+        ? `${selectedPlayer} odebrał nagrodę: ${selectedItem.name}!`
+        : `${selectedPlayer} wykonał karę: ${selectedItem.name}!`;
+    showNotification(message);
 }
 
 /**
@@ -285,6 +324,9 @@ function showNotification(message) {
 
 /**
  * Stosuje bonusy za nieaktywność
+ * - Dzień bez przekleństwa = +1 punkt
+ * - Tydzień bez przekleństwa = +5 punktów
+ * - Miesiąc bez przekleństwa = +10 punktów
  */
 function applyInactivityBonuses() {
     const data = getData();
@@ -295,7 +337,6 @@ function applyInactivityBonuses() {
     if (lastBonusCheck === today) return;
 
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     PLAYERS.forEach(player => {
         if (!data.players[player]) return;
@@ -303,34 +344,51 @@ function applyInactivityBonuses() {
         const playerData = data.players[player];
         const lastActivity = playerData.lastActivity ? new Date(playerData.lastActivity) : null;
 
-        if (!lastActivity) return;
+        // Jeśli gracz nie ma jeszcze żadnej aktywności, ustaw datę rejestracji
+        if (!lastActivity) {
+            playerData.lastActivity = new Date().toISOString();
+            playerData.rewardedInactiveDays = 0;
+            playerData.rewardedInactiveWeeks = 0;
+            return;
+        }
 
         // Oblicz dni nieaktywności
         const daysSinceActivity = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
 
-        // Bonus za dni bez przekleństw (max do liczby punktów)
+        // Bonus za dni bez przekleństw (+1 punkt za dzień)
         if (daysSinceActivity > 0) {
-            const daysToReward = playerData.rewardedInactiveDays || 0;
-            const newDaysToReward = daysSinceActivity - daysToReward;
+            const daysRewarded = playerData.rewardedInactiveDays || 0;
+            const newDaysToReward = daysSinceActivity - daysRewarded;
 
             if (newDaysToReward > 0) {
-                // Odejmij punkty za nieaktywne dni (1 punkt za dzień)
-                const bonusPoints = Math.min(newDaysToReward, playerData.total || 0);
+                // Dodaj punkty za nieaktywne dni
+                playerData.total = (playerData.total || 0) + newDaysToReward;
 
-                if (bonusPoints > 0) {
-                    if (!playerData.bonusReductions) {
-                        playerData.bonusReductions = 0;
-                    }
-                    playerData.bonusReductions += bonusPoints;
-                    playerData.total = Math.max(0, playerData.total - bonusPoints);
+                if (!playerData.bonusGained) {
+                    playerData.bonusGained = 0;
                 }
-
+                playerData.bonusGained += newDaysToReward;
                 playerData.rewardedInactiveDays = daysSinceActivity;
             }
         }
 
-        // Sprawdź bonus za cały miesiąc bez przekleństw
-        const monthlyCount = playerData.monthly?.[currentMonth] || 0;
+        // Bonus za pełne tygodnie bez przekleństw (+5 punktów za tydzień)
+        const fullWeeks = Math.floor(daysSinceActivity / 7);
+        const weeksRewarded = playerData.rewardedInactiveWeeks || 0;
+        const newWeeksToReward = fullWeeks - weeksRewarded;
+
+        if (newWeeksToReward > 0) {
+            const weekBonus = newWeeksToReward * 5;
+            playerData.total = (playerData.total || 0) + weekBonus;
+
+            if (!playerData.bonusGained) {
+                playerData.bonusGained = 0;
+            }
+            playerData.bonusGained += weekBonus;
+            playerData.rewardedInactiveWeeks = fullWeeks;
+        }
+
+        // Bonus za cały miesiąc bez przekleństw (+10 punktów)
         const lastMonthChecked = playerData.lastMonthBonusCheck || null;
 
         // Sprawdź poprzedni miesiąc
@@ -340,16 +398,14 @@ function applyInactivityBonuses() {
         if (lastMonthChecked !== prevMonthKey && now.getDate() >= 1) {
             const prevMonthCount = playerData.monthly?.[prevMonthKey] || 0;
 
-            if (prevMonthCount === 0 && playerData.total > 0) {
-                // Bonus -10 za cały miesiąc bez przekleństw
-                const monthBonus = Math.min(10, playerData.total);
-                playerData.total = Math.max(0, playerData.total - monthBonus);
+            if (prevMonthCount === 0) {
+                // Bonus +10 za cały miesiąc bez przekleństw
+                playerData.total = (playerData.total || 0) + 10;
 
-                if (!playerData.bonusReductions) {
-                    playerData.bonusReductions = 0;
+                if (!playerData.bonusGained) {
+                    playerData.bonusGained = 0;
                 }
-                playerData.bonusReductions += monthBonus;
-
+                playerData.bonusGained += 10;
                 playerData.lastMonthBonusCheck = prevMonthKey;
             }
         }
@@ -374,8 +430,19 @@ function setupShopEventListeners() {
         });
     });
 
-    // Przyciski kupna
-    document.getElementById('shopGrid').addEventListener('click', (e) => {
+    // Przyciski kupna - nagrody
+    document.getElementById('rewardsGrid').addEventListener('click', (e) => {
+        if (e.target.classList.contains('shop-buy-btn')) {
+            const itemId = e.target.dataset.itemId;
+            const item = getShopItemById(itemId);
+            if (item) {
+                openPurchaseModal(item);
+            }
+        }
+    });
+
+    // Przyciski kupna - kary
+    document.getElementById('penaltiesGrid').addEventListener('click', (e) => {
         if (e.target.classList.contains('shop-buy-btn')) {
             const itemId = e.target.dataset.itemId;
             const item = getShopItemById(itemId);

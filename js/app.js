@@ -34,9 +34,12 @@ function renderClickers() {
     grid.innerHTML = '';
 
     PLAYERS.forEach(player => {
-        const count = getPlayerMonthlyScore(player);
+        const monthlySwears = getPlayerMonthlyScore(player);
         const balance = getPlayerTotalBalance(player);
         const status = getPlayerStatus(balance);
+
+        const balanceDisplay = balance >= 0 ? `+${balance}` : balance;
+        const balanceClass = balance >= 0 ? 'positive' : 'negative';
 
         const card = document.createElement('div');
         card.className = 'clicker-card';
@@ -44,8 +47,8 @@ function renderClickers() {
         card.innerHTML = `
             <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
             <div class="player-name">${player}</div>
-            <div class="count">${count}</div>
-            <div class="player-total">Razem: ${balance} pkt</div>
+            <div class="count">${monthlySwears}</div>
+            <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
             <div class="click-hint">Kliknij!</div>
         `;
 
@@ -56,16 +59,13 @@ function renderClickers() {
 }
 
 /**
- * Pobiera całkowite saldo gracza (do statusu)
+ * Pobiera całkowity bilans punktów gracza (może być dodatni lub ujemny)
  */
 function getPlayerTotalBalance(playerName) {
     const data = getData();
     const player = data.players[playerName];
     if (!player) return 0;
-
-    const total = player.total || 0;
-    const spent = player.spent || 0;
-    return Math.max(0, total - spent);
+    return player.total || 0;
 }
 
 /**
@@ -105,10 +105,13 @@ function renderScoreboard() {
         const row = document.createElement('tr');
         row.className = place <= 3 ? `place-${place}` : '';
 
+        const pointsDisplay = player.points >= 0 ? `+${player.points}` : player.points;
+        const pointsClass = player.points >= 0 ? 'positive' : 'negative';
+
         row.innerHTML = `
             <td><span class="place-badge">${place}</span></td>
             <td>${player.name}</td>
-            <td>${player.count}</td>
+            <td class="${pointsClass}">${pointsDisplay}</td>
         `;
 
         tbody.appendChild(row);

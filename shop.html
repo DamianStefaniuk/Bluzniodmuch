@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sklep Fantów - Słoiczek Wentylacji</title>
+    <title>Nagrody i Kary - Bluzniodmuch</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Słoiczek Wentylacji</h1>
-            <p class="subtitle">Sklep Odkupienia</p>
+            <h1>Bluzniodmuch</h1>
+            <p class="subtitle">Nagrody i Kary</p>
             <nav>
                 <a href="index.html">Tablica</a>
-                <a href="shop.html" class="active">Sklep</a>
+                <a href="shop.html" class="active">Nagrody/Kary</a>
                 <a href="trophies.html">Trofea</a>
                 <a href="settings.html">Ustawienia</a>
             </nav>
@@ -51,90 +51,116 @@
                 </div>
             </section>
 
-            <section class="shop-section">
-                <h2>Fanty do odkupienia</h2>
-                <p class="shop-info">Wydaj swoje "punkty grzechu" na fanty dla zespołu!</p>
+            <section class="shop-section rewards-section">
+                <h2>Nagrody</h2>
+                <p class="shop-info">Masz punkty dodatnie? Odbierz swoje nagrody!</p>
+                <div class="shop-grid rewards-grid" id="rewardsGrid">
+                </div>
+            </section>
 
-                <div class="shop-grid" id="shopGrid">
+            <section class="shop-section penalties-section">
+                <h2>Kary</h2>
+                <p class="shop-info">Masz ujemne punkty? Wykonaj karę, aby poprawic swoj wynik!</p>
+                <div class="shop-grid penalties-grid" id="penaltiesGrid">
                 </div>
             </section>
 
             <section class="purchase-history">
-                <h2>Historia odkupień</h2>
+                <h2>Historia</h2>
                 <div class="history-list" id="historyList">
-                    <p class="no-history">Brak historii zakupów</p>
+                    <p class="no-history">Brak historii</p>
+                </div>
+            </section>
+
+            <section class="bonus-info">
+                <h2>System punktacji</h2>
+                <div class="bonus-cards-simple">
+                    <div class="bonus-card-simple">
+                        <span class="bonus-icon">📅</span>
+                        <span class="bonus-title">Dzien bez przeklenstwa</span>
+                        <span class="bonus-value">+1 pkt</span>
+                    </div>
+                    <div class="bonus-card-simple">
+                        <span class="bonus-icon">📆</span>
+                        <span class="bonus-title">Tydzien bez przeklenstwa</span>
+                        <span class="bonus-value">+5 pkt</span>
+                    </div>
+                    <div class="bonus-card-simple">
+                        <span class="bonus-icon">🗓️</span>
+                        <span class="bonus-title">Miesiac bez przeklenstwa</span>
+                        <span class="bonus-value">+10 pkt</span>
+                    </div>
                 </div>
             </section>
 
             <section class="status-legend">
                 <h2>Statusy graczy</h2>
-                <div class="status-grid">
-                    <div class="status-card">
+
+                <h3 class="status-category-title good">Dobre</h3>
+                <div class="status-row">
+                    <div class="status-card-compact">
                         <span class="status-icon">😇</span>
-                        <span class="status-name">Święty</span>
-                        <span class="status-desc">0 przekleństw</span>
+                        <span class="status-name">Swiety</span>
+                        <span class="status-range">50+ pkt</span>
                     </div>
-                    <div class="status-card">
+                    <div class="status-card-compact">
                         <span class="status-icon">😊</span>
                         <span class="status-name">Grzeczny</span>
-                        <span class="status-desc">1-5 przekleństw</span>
+                        <span class="status-range">20-49 pkt</span>
                     </div>
-                    <div class="status-card">
-                        <span class="status-icon">😐</span>
-                        <span class="status-name">Neutralny</span>
-                        <span class="status-desc">6-15 przekleństw</span>
-                    </div>
-                    <div class="status-card">
-                        <span class="status-icon">😤</span>
-                        <span class="status-name">Gorsze dni</span>
-                        <span class="status-desc">16-30 przekleństw</span>
-                    </div>
-                    <div class="status-card">
-                        <span class="status-icon">🤬</span>
-                        <span class="status-name">Niegrzeczny</span>
-                        <span class="status-desc">31-50 przekleństw</span>
-                    </div>
-                    <div class="status-card">
-                        <span class="status-icon">👹</span>
-                        <span class="status-name">Przeklinator</span>
-                        <span class="status-desc">51+ przekleństw</span>
+                    <div class="status-card-compact">
+                        <span class="status-icon">🙂</span>
+                        <span class="status-name">W normie</span>
+                        <span class="status-range">1-19 pkt</span>
                     </div>
                 </div>
-            </section>
 
-            <section class="bonus-info">
-                <h2>System bonusów</h2>
-                <div class="bonus-cards">
-                    <div class="bonus-card">
-                        <span class="bonus-icon">📅</span>
-                        <span class="bonus-title">Dzienny bonus</span>
-                        <span class="bonus-desc">Za każdy dzień bez przekleństwa: <strong>-1 punkt</strong></span>
+                <h3 class="status-category-title neutral">Neutralne</h3>
+                <div class="status-row">
+                    <div class="status-card-compact">
+                        <span class="status-icon">😐</span>
+                        <span class="status-name">Neutralny</span>
+                        <span class="status-range">0 do -9 pkt</span>
                     </div>
-                    <div class="bonus-card">
-                        <span class="bonus-icon">🗓️</span>
-                        <span class="bonus-title">Miesięczny bonus</span>
-                        <span class="bonus-desc">Cały miesiąc bez przekleństwa: <strong>-10 punktów</strong></span>
+                </div>
+
+                <h3 class="status-category-title bad">Zle</h3>
+                <div class="status-row">
+                    <div class="status-card-compact">
+                        <span class="status-icon">😤</span>
+                        <span class="status-name">Gorsze dni</span>
+                        <span class="status-range">-10 do -30 pkt</span>
+                    </div>
+                    <div class="status-card-compact">
+                        <span class="status-icon">🤬</span>
+                        <span class="status-name">Niegrzeczny</span>
+                        <span class="status-range">-31 do -50 pkt</span>
+                    </div>
+                    <div class="status-card-compact">
+                        <span class="status-icon">👹</span>
+                        <span class="status-name">Przeklinator</span>
+                        <span class="status-range">-51 i mniej</span>
                     </div>
                 </div>
             </section>
         </main>
 
         <footer>
-            <p>Zespół Wentylacji © 2025</p>
+            <p>Zespol Wentylacji &copy; 2025</p>
         </footer>
     </div>
 
     <div class="modal" id="purchaseModal">
         <div class="modal-content">
-            <h3 id="modalTitle">Potwierdź zakup</h3>
+            <h3 id="modalTitle">Potwierdz akcje</h3>
             <p id="modalDescription"></p>
             <div class="modal-details">
-                <span>Koszt: <strong id="modalCost">0</strong> punktów</span>
-                <span>Twoje saldo: <strong id="modalBalance">0</strong> punktów</span>
+                <span><span id="modalCostLabel">Koszt:</span> <strong id="modalCost">0</strong></span>
+                <span><span id="modalBalanceLabel">Twoj bilans:</span> <strong id="modalBalance">0</strong></span>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="modalCancel">Anuluj</button>
-                <button class="btn btn-primary" id="modalConfirm">Kupuję!</button>
+                <button class="btn btn-primary" id="modalConfirm">Potwierdz</button>
             </div>
         </div>
     </div>

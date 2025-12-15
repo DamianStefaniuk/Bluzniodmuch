@@ -887,6 +887,104 @@ footer {
     opacity: 0.9;
 }
 
+/* Bonus Cards Simple - bez tła */
+.bonus-cards-simple {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.bonus-card-simple {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 15px 20px;
+}
+
+.bonus-card-simple .bonus-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.bonus-card-simple .bonus-title {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.bonus-card-simple .bonus-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--success);
+}
+
+/* Status Categories */
+.status-category-title {
+    font-size: 1rem;
+    margin: 15px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid;
+}
+
+.status-category-title.good {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.status-category-title.neutral {
+    color: var(--text-light);
+    border-color: var(--text-light);
+}
+
+.status-category-title.bad {
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+.status-category-title:first-of-type {
+    margin-top: 0;
+}
+
+/* Status Row - kafle w jednej linii */
+.status-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+/* Status Card Compact */
+.status-card-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 12px 20px;
+    background: var(--background);
+    border-radius: 10px;
+    min-width: 100px;
+}
+
+.status-card-compact .status-icon {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+}
+
+.status-card-compact .status-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--primary);
+    margin-bottom: 3px;
+}
+
+.status-card-compact .status-range {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    white-space: nowrap;
+}
+
 /* Modal */
 .modal {
     display: none;
@@ -953,6 +1051,137 @@ footer {
     transform: translateX(-50%) translateY(0);
 }
 
+/* Points display - positive/negative */
+.positive {
+    color: var(--success) !important;
+}
+
+.negative {
+    color: var(--secondary) !important;
+}
+
+.player-total.positive {
+    color: var(--success) !important;
+}
+
+.player-total.negative {
+    color: var(--secondary) !important;
+}
+
+.player-balance.positive {
+    color: var(--success) !important;
+}
+
+.player-balance.negative {
+    color: var(--secondary) !important;
+}
+
+/* Shop sections */
+.rewards-section h2 {
+    border-bottom-color: var(--success);
+}
+
+.penalties-section h2 {
+    border-bottom-color: var(--secondary);
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+/* Shop item cards - rewards */
+.shop-item-card.reward {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
+    border: 2px solid rgba(39, 174, 96, 0.3);
+}
+
+.shop-item-card.reward:hover {
+    border-color: var(--success);
+}
+
+.shop-item-card.reward .cost-value {
+    color: var(--success);
+}
+
+/* Shop item cards - penalties */
+.shop-item-card.penalty {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+    border: 2px solid rgba(231, 76, 60, 0.3);
+}
+
+.shop-item-card.penalty:hover {
+    border-color: var(--secondary);
+}
+
+.shop-item-card.penalty .cost-value {
+    color: var(--secondary);
+}
+
+/* Shop item cost display */
+.shop-item-cost {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.shop-item-cost .cost-label {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+/* Button variants */
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #219a52;
+}
+
+.btn-warning {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: #d68910;
+}
+
+/* Bonus cards - positive/negative */
+.bonus-card.positive {
+    background: linear-gradient(135deg, var(--success), #2ecc71);
+}
+
+.bonus-card.negative {
+    background: linear-gradient(135deg, var(--secondary), #e74c3c);
+}
+
+/* History items */
+.history-item.reward {
+    border-left: 4px solid var(--success);
+}
+
+.history-item.penalty {
+    border-left: 4px solid var(--secondary);
+}
+
+.history-action {
+    font-size: 0.75rem;
+    color: var(--text-light);
+}
+
+.history-cost.positive {
+    color: var(--success) !important;
+}
+
+.history-cost.negative {
+    color: var(--secondary) !important;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     header h1 {
@@ -967,5 +1196,13 @@ footer {
 
     .clicker-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .shop-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .bonus-cards {
+        grid-template-columns: 1fr;
     }
 }

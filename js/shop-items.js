@@ -1,178 +1,237 @@
 /**
- * Bluzniodmuch - Definicje fantów w sklepie
+ * Bluzniodmuch - Definicje przedmiotów w sklepie
  *
- * INSTRUKCJA DODAWANIA FANTÓW:
- * Aby dodać nowy fant, dodaj obiekt do tablicy SHOP_ITEMS:
- * {
- *     id: "unique_id",           // Unikalny identyfikator
- *     name: "Nazwa fantu",       // Wyświetlana nazwa
- *     description: "Opis",       // Co trzeba zrobić
- *     cost: 10,                  // Koszt w punktach przekleństw
- *     icon: "🍕",                // Emoji jako ikona
- *     category: "team"           // Kategoria: "team", "personal", "fun"
- * }
+ * SYSTEM PUNKTACJI:
+ * - Przekleństwo = -1 punkt
+ * - Dzień bez przekleństwa = +1 punkt
+ * - Tydzień bez przekleństwa = +5 punktów
+ * - Miesiąc bez przekleństwa = +10 punktów
+ *
+ * NAGRODY (type: 'reward'):
+ * - Kupowane za punkty dodatnie
+ * - Koszt dodatni (np. 10 pkt)
+ * - Wymagane: punkty >= koszt
+ * - To co gracz DOSTAJE jako nagrodę
+ *
+ * KARY (type: 'penalty'):
+ * - Kupowane gdy mamy ujemne punkty
+ * - Koszt ujemny (np. -10 pkt oznacza że trzeba mieć min -10 punktów)
+ * - Po wykonaniu kary punkty są dodawane (poprawa statusu)
+ * - To co gracz MUSI ZROBIĆ aby poprawić wynik
  */
 
 const SHOP_ITEMS = [
     // ============================================
-    // FANTY ZESPOŁOWE (dla całego zespołu)
+    // NAGRODY - kupowane za punkty dodatnie
+    // ============================================
+    {
+        id: "free_day",
+        name: "Dzień bez obowiązków",
+        description: "Przez jeden dzień nie musisz robić niczego dla zespołu!",
+        cost: 30,
+        icon: "🏖️",
+        type: "reward",
+        category: "personal"
+    },
+    {
+        id: "late_arrival",
+        name: "Późniejsze przyjście",
+        description: "Możesz przyjść 30 minut później do pracy",
+        cost: 15,
+        icon: "😴",
+        type: "reward",
+        category: "personal"
+    },
+    {
+        id: "early_leave",
+        name: "Wcześniejsze wyjście",
+        description: "Możesz wyjść 30 minut wcześniej z pracy",
+        cost: 15,
+        icon: "🏃",
+        type: "reward",
+        category: "personal"
+    },
+    {
+        id: "coffee_served",
+        name: "Kawa na życzenie",
+        description: "Koledzy robią Ci kawę przez cały dzień",
+        cost: 20,
+        icon: "☕",
+        type: "reward",
+        category: "personal"
+    },
+    {
+        id: "music_choice",
+        name: "DJ na dzień",
+        description: "Przez cały dzień Ty wybierasz muzykę w biurze",
+        cost: 10,
+        icon: "🎵",
+        type: "reward",
+        category: "personal"
+    },
+    {
+        id: "best_chair",
+        name: "Najlepsze krzesło",
+        description: "Dostajesz najwygodniejsze krzesło na tydzień",
+        cost: 25,
+        icon: "🪑",
+        type: "reward",
+        category: "personal"
+    },
+    {
+        id: "lunch_treat",
+        name: "Lunch fundowany",
+        description: "Zespół funduje Ci lunch",
+        cost: 40,
+        icon: "🍽️",
+        type: "reward",
+        category: "team"
+    },
+    {
+        id: "parking_spot",
+        name: "Najlepsze miejsce parkingowe",
+        description: "Przez tydzień masz zarezerwowane najlepsze miejsce",
+        cost: 20,
+        icon: "🅿️",
+        type: "reward",
+        category: "personal"
+    },
+
+    // ============================================
+    // KARY - kupowane za ujemne punkty
+    // Wykonanie kary poprawia wynik gracza
     // ============================================
     {
         id: "pizza_team",
         name: "Pizza dla zespołu",
-        description: "Stawiasz pizzę dla całego zespołu wentylacji!",
-        cost: 50,
+        description: "Stawiasz pizzę dla całego zespołu!",
+        cost: -50,
         icon: "🍕",
+        type: "penalty",
         category: "team"
     },
     {
         id: "cake_team",
         name: "Ciasto dla zespołu",
         description: "Przynosisz ciasto/tort dla kolegów",
-        cost: 30,
+        cost: -30,
         icon: "🎂",
+        type: "penalty",
         category: "team"
     },
     {
         id: "coffee_team",
         name: "Kawa dla wszystkich",
-        description: "Fundujeszrundę kawy z automatu dla zespołu",
-        cost: 20,
+        description: "Fundujesz rundę kawy z automatu dla zespołu",
+        cost: -20,
         icon: "☕",
+        type: "penalty",
         category: "team"
     },
     {
         id: "donuts_team",
         name: "Pączki dla zespołu",
         description: "Przynosisz pączki dla wszystkich",
-        cost: 25,
+        cost: -25,
         icon: "🍩",
+        type: "penalty",
         category: "team"
     },
-    {
-        id: "breakfast_team",
-        name: "Śniadanie zespołowe",
-        description: "Organizujesz śniadanie dla zespołu",
-        cost: 40,
-        icon: "🥐",
-        category: "team"
-    },
-
-    // ============================================
-    // FANTY OSOBISTE (kary dla siebie)
-    // ============================================
     {
         id: "clean_desk",
         name: "Sprzątanie biurek",
         description: "Sprzątasz wszystkie biurka w pokoju",
-        cost: 15,
+        cost: -15,
         icon: "🧹",
+        type: "penalty",
         category: "personal"
     },
     {
         id: "make_tea",
         name: "Herbata na życzenie",
         description: "Przez tydzień robisz herbatę na życzenie kolegów",
-        cost: 20,
+        cost: -20,
         icon: "🫖",
+        type: "penalty",
         category: "personal"
     },
     {
         id: "water_plants",
         name: "Opiekun roślin",
         description: "Przez miesiąc podlewasz rośliny w biurze",
-        cost: 10,
+        cost: -10,
         icon: "🌱",
+        type: "penalty",
         category: "personal"
     },
     {
         id: "trash_duty",
         name: "Dyżur śmieciowy",
         description: "Przez tydzień wynosisz śmieci z pokoju",
-        cost: 15,
+        cost: -15,
         icon: "🗑️",
+        type: "penalty",
         category: "personal"
     },
-    {
-        id: "meeting_notes",
-        name: "Protokolant",
-        description: "Robisz notatki z następnych 3 spotkań zespołu",
-        cost: 25,
-        icon: "📝",
-        category: "personal"
-    },
-
-    // ============================================
-    // FANTY ZABAWNE
-    // ============================================
     {
         id: "silly_hat",
         name: "Czapka wstydu",
         description: "Nosisz śmieszną czapkę przez cały dzień",
-        cost: 10,
+        cost: -10,
         icon: "🎩",
+        type: "penalty",
         category: "fun"
     },
     {
         id: "compliment_day",
         name: "Dzień komplementów",
         description: "Przez cały dzień musisz komplementować kolegów",
-        cost: 8,
+        cost: -8,
         icon: "💬",
-        category: "fun"
-    },
-    {
-        id: "no_chair",
-        name: "Stojący dzień",
-        description: "Pracujesz na stojąco przez godzinę",
-        cost: 5,
-        icon: "🧍",
+        type: "penalty",
         category: "fun"
     },
     {
         id: "dance_break",
         name: "Taneczna przerwa",
         description: "Musisz zatańczyć przed zespołem",
-        cost: 12,
+        cost: -12,
         icon: "💃",
+        type: "penalty",
         category: "fun"
     },
     {
         id: "karaoke",
         name: "Karaoke solo",
         description: "Śpiewasz piosenkę wybraną przez zespół",
-        cost: 15,
+        cost: -15,
         icon: "🎤",
+        type: "penalty",
         category: "fun"
     },
     {
         id: "joke_day",
         name: "Dzień dowcipów",
         description: "Musisz opowiedzieć 5 dowcipów (nawet słabych)",
-        cost: 6,
+        cost: -6,
         icon: "😂",
-        category: "fun"
-    },
-    {
-        id: "accent_hour",
-        name: "Godzina z akcentem",
-        description: "Przez godzinę mówisz ze śmiesznym akcentem",
-        cost: 8,
-        icon: "🗣️",
+        type: "penalty",
         category: "fun"
     }
 ];
 
 /**
- * Definicje statusów graczy
+ * Definicje statusów graczy - teraz bazowane na bilansie punktów
+ * Dodatnie punkty = dobry status, ujemne = zły status
  */
 const PLAYER_STATUSES = [
-    { min: 0, max: 0, name: "Święty", icon: "😇", color: "#f1c40f" },
-    { min: 1, max: 5, name: "Grzeczny", icon: "😊", color: "#27ae60" },
-    { min: 6, max: 15, name: "Neutralny", icon: "😐", color: "#3498db" },
-    { min: 16, max: 30, name: "Gorsze dni", icon: "😤", color: "#e67e22" },
-    { min: 31, max: 50, name: "Niegrzeczny", icon: "🤬", color: "#e74c3c" },
-    { min: 51, max: Infinity, name: "Przeklinator", icon: "👹", color: "#8e44ad" }
+    { min: 50, max: Infinity, name: "Święty", icon: "😇", color: "#f1c40f" },
+    { min: 20, max: 49, name: "Grzeczny", icon: "😊", color: "#27ae60" },
+    { min: 1, max: 19, name: "W normie", icon: "🙂", color: "#3498db" },
+    { min: -9, max: 0, name: "Neutralny", icon: "😐", color: "#95a5a6" },
+    { min: -30, max: -10, name: "Gorsze dni", icon: "😤", color: "#e67e22" },
+    { min: -50, max: -31, name: "Niegrzeczny", icon: "🤬", color: "#e74c3c" },
+    { min: -Infinity, max: -51, name: "Przeklinator", icon: "👹", color: "#8e44ad" }
 ];
 
 /**
@@ -180,6 +239,20 @@ const PLAYER_STATUSES = [
  */
 function getShopItems() {
     return SHOP_ITEMS;
+}
+
+/**
+ * Pobiera nagrody (do kupienia za punkty dodatnie)
+ */
+function getRewards() {
+    return SHOP_ITEMS.filter(item => item.type === 'reward');
+}
+
+/**
+ * Pobiera kary (do kupienia za punkty ujemne)
+ */
+function getPenalties() {
+    return SHOP_ITEMS.filter(item => item.type === 'penalty');
 }
 
 /**
@@ -197,7 +270,7 @@ function getShopItemById(id) {
 }
 
 /**
- * Pobiera status gracza na podstawie liczby punktów
+ * Pobiera status gracza na podstawie bilansu punktów
  */
 function getPlayerStatus(points) {
     for (const status of PLAYER_STATUSES) {

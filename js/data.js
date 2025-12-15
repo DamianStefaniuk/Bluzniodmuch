@@ -42,7 +42,7 @@ function getMonthName(monthKey) {
 }
 
 /**
- * Inicjalizuje dane jeśli nie istnieją
+ * Inicjalizuje dane jeśli nie istnieją i migruje stare dane
  */
 function initializeData() {
     let scores = localStorage.getItem(STORAGE_KEYS.SCORES);
@@ -56,12 +56,58 @@ function initializeData() {
         PLAYERS.forEach(player => {
             initialData.players[player] = {
                 total: 0,
+                swearCount: 0,
                 monthly: {},
-                yearly: {}
+                yearly: {},
+                lastActivity: null,
+                rewardedInactiveDays: 0,
+                rewardedInactiveWeeks: 0
             };
         });
 
         localStorage.setItem(STORAGE_KEYS.SCORES, JSON.stringify(initialData));
+    } else {
+        // Migracja starych danych - upewnij się że wszystkie pola istnieją
+        const data = JSON.parse(scores);
+        let needsSave = false;
+
+        PLAYERS.forEach(player => {
+            if (!data.players[player]) {
+                data.players[player] = {
+                    total: 0,
+                    swearCount: 0,
+                    monthly: {},
+                    yearly: {},
+                    lastActivity: null,
+                    rewardedInactiveDays: 0,
+                    rewardedInactiveWeeks: 0
+                };
+                needsSave = true;
+            } else {
+                // Upewnij się że total istnieje (może być ujemny)
+                if (typeof data.players[player].total !== 'number') {
+                    data.players[player].total = 0;
+                    needsSave = true;
+                }
+                // Dodaj brakujące pola
+                if (typeof data.players[player].swearCount !== 'number') {
+                    data.players[player].swearCount = data.players[player].total > 0 ? data.players[player].total : 0;
+                    needsSave = true;
+                }
+                if (typeof data.players[player].rewardedInactiveDays !== 'number') {
+                    data.players[player].rewardedInactiveDays = 0;
+                    needsSave = true;
+                }
+                if (typeof data.players[player].rewardedInactiveWeeks !== 'number') {
+                    data.players[player].rewardedInactiveWeeks = 0;
+                    needsSave = true;
+                }
+            }
+        });
+
+        if (needsSave) {
+            localStorage.setItem(STORAGE_KEYS.SCORES, JSON.stringify(data));
+        }
     }
 
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.SCORES));
@@ -82,7 +128,7 @@ function saveData(data) {
 }
 
 /**
- * Dodaje przekleństwo dla gracza
+ * Dodaje przekleństwo dla gracza (każde przekleństwo = -1 punkt)
  */
 function addSwear(playerName) {
     const data = getData();
@@ -92,34 +138,41 @@ function addSwear(playerName) {
     if (!data.players[playerName]) {
         data.players[playerName] = {
             total: 0,
+            swearCount: 0,
             monthly: {},
             yearly: {},
             spent: 0,
             lastActivity: null,
-            rewardedInactiveDays: 0
+            rewardedInactiveDays: 0,
+            rewardedInactiveWeeks: 0
         };
     }
 
     const player = data.players[playerName];
 
-    // Zwiększ całkowity licznik
-    player.total++;
+    // Odejmij punkt za przekleństwo
+    player.total--;
 
-    // Zwiększ licznik miesięczny
+    // Zwiększ licznik przekleństw (do statystyk)
+    if (!player.swearCount) player.swearCount = 0;
+    player.swearCount++;
+
+    // Zwiększ licznik miesięczny przekleństw
     if (!player.monthly[monthKey]) {
         player.monthly[monthKey] = 0;
     }
     player.monthly[monthKey]++;
 
-    // Zwiększ licznik roczny
+    // Zwiększ licznik roczny przekleństw
     if (!player.yearly[yearKey]) {
         player.yearly[yearKey] = 0;
     }
     player.yearly[yearKey]++;
 
-    // Zapisz ostatnią aktywność i zresetuj licznik nieaktywnych dni
+    // Zapisz ostatnią aktywność i zresetuj liczniki nieaktywnych okresów
     player.lastActivity = new Date().toISOString();
     player.rewardedInactiveDays = 0;
+    player.rewardedInactiveWeeks = 0;
 
     saveData(data);
 
@@ -128,6 +181,8 @@ function addSwear(playerName) {
 
 /**
  * Pobiera wyniki dla danego okresu
+ * Teraz pokazuje punkty (dodatnie = dobre, ujemne = złe)
+ * Sortowanie: najwyższy wynik = 1 miejsce
  */
 function getScores(period = 'month') {
     const data = getData();
@@ -136,25 +191,32 @@ function getScores(period = 'month') {
 
     const scores = PLAYERS.map(player => {
         const playerData = data.players[player] || { total: 0, monthly: {}, yearly: {} };
-        let count = 0;
+        let points = 0;
+        let swearCount = 0;
 
         switch (period) {
             case 'month':
-                count = playerData.monthly[monthKey] || 0;
+                // Punkty za miesiąc = ujemna liczba przekleństw w miesiącu
+                swearCount = playerData.monthly[monthKey] || 0;
+                points = -swearCount; // każde przekleństwo to -1
                 break;
             case 'year':
-                count = playerData.yearly[yearKey] || 0;
+                // Punkty za rok = ujemna liczba przekleństw w roku
+                swearCount = playerData.yearly[yearKey] || 0;
+                points = -swearCount;
                 break;
             case 'all':
-                count = playerData.total || 0;
+                // Całkowity bilans punktów
+                points = playerData.total || 0;
+                swearCount = playerData.swearCount || 0;
                 break;
         }
 
-        return { name: player, count };
+        return { name: player, points, swearCount };
     });
 
-    // Sortuj od największej liczby
-    return scores.sort((a, b) => b.count - a.count);
+    // Sortuj od najwyższego wyniku (najbardziej dodatni = 1 miejsce)
+    return scores.sort((a, b) => b.points - a.points);
 }
 
 /**
@@ -167,11 +229,21 @@ function getPlayerMonthlyScore(playerName) {
 }
 
 /**
- * Pobiera sumę zespołu dla okresu
+ * Pobiera sumę przekleństw zespołu dla okresu
  */
 function getTeamTotal(period = 'month') {
     const scores = getScores(period);
-    return scores.reduce((sum, player) => sum + player.count, 0);
+    return scores.reduce((sum, player) => sum + player.swearCount, 0);
+}
+
+/**
+ * Pobiera bilans punktów gracza (może być dodatni lub ujemny)
+ */
+function getPlayerPoints(playerName) {
+    const data = getData();
+    const player = data.players[playerName];
+    if (!player) return 0;
+    return player.total || 0;
 }
 
 /**
