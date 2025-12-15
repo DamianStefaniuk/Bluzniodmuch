@@ -18,6 +18,15 @@ const GIST_ACHIEVEMENTS_FILENAME = 'bluzniodmuch_achievements.json';
 // Lista administratorów (GitHub usernames) - tylko ci użytkownicy mają dostęp do zarządzania danymi
 const ADMIN_USERS = ['DamianStefaniuk'];
 
+// Lista autoryzowanych użytkowników (GitHub usernames) - tylko ci użytkownicy mogą korzystać z aplikacji
+const ALLOWED_USERS = {
+    'DamianStefaniuk': 'Damian',
+    'Jacek': 'Jacek',
+    'Mateusz': 'Mateusz',
+    'Tomek': 'Tomek',
+    'Karol': 'Karol'
+};
+
 /**
  * Sprawdza czy synchronizacja jest skonfigurowana
  */
@@ -81,6 +90,24 @@ function isAdmin() {
     const username = getGithubUsername();
     if (!username) return false;
     return ADMIN_USERS.includes(username);
+}
+
+/**
+ * Sprawdza czy zalogowany użytkownik jest autoryzowany (może korzystać z aplikacji)
+ */
+function isAuthorizedUser() {
+    const username = getGithubUsername();
+    if (!username) return false;
+    return username in ALLOWED_USERS;
+}
+
+/**
+ * Pobiera nazwę gracza na podstawie zalogowanego GitHub username
+ */
+function getPlayerNameFromGithub() {
+    const username = getGithubUsername();
+    if (!username) return null;
+    return ALLOWED_USERS[username] || null;
 }
 
 /**

@@ -7,7 +7,7 @@
  *   Po wykonaniu kary, punkty są dodawane (poprawa statusu)
  */
 
-let selectedPlayer = 'Jacek';
+let selectedPlayer = null;
 let selectedItem = null;
 
 /**
@@ -16,14 +16,23 @@ let selectedItem = null;
 document.addEventListener('DOMContentLoaded', async () => {
     initializeData();
     applyInactivityBonuses();
+
+    // Automatycznie ustaw gracza na podstawie zalogowanego użytkownika
+    const currentPlayerName = getPlayerNameFromGithub();
+    if (currentPlayerName) {
+        selectedPlayer = currentPlayerName;
+    }
+
     renderShop();
     renderPlayerBalances();
+    renderPlayerSelector();
     renderPurchaseHistory();
     setupShopEventListeners();
 
     if (isSyncConfigured()) {
         await syncData();
         renderPlayerBalances();
+        renderPlayerSelector();
         renderPurchaseHistory();
     }
 });
@@ -186,6 +195,12 @@ function renderPurchaseHistory() {
  * Otwiera modal potwierdzenia
  */
 function openPurchaseModal(item) {
+    // Sprawdź czy użytkownik jest zalogowany
+    if (!isAuthorizedUser() || !selectedPlayer) {
+        showNotification('Musisz być zalogowany, aby korzystać z tej funkcji!');
+        return;
+    }
+
     selectedItem = item;
     const balance = getPlayerBalance(selectedPlayer);
     const isReward = item.type === 'reward';
@@ -424,19 +439,57 @@ function applyInactivityBonuses() {
 }
 
 /**
+ * Renderuje selektor gracza (automatycznie zaznacza zalogowanego, blokuje innych)
+ */
+function renderPlayerSelector() {
+    const playerSelector = document.querySelector('.player-selector');
+    const playerSelectSection = document.querySelector('.player-select-section');
+    const isUserAuthorized = isAuthorizedUser();
+    const currentPlayerName = getPlayerNameFromGithub();
+
+    // Usuń istniejący overlay jeśli jest
+    const existingOverlay = playerSelectSection.querySelector('.auth-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+
+    // Jeśli użytkownik nie jest zalogowany, pokaż overlay
+    if (!isUserAuthorized) {
+        const overlay = document.createElement('div');
+        overlay.className = 'auth-overlay';
+        overlay.innerHTML = `
+            <div class="auth-overlay-content">
+                <span class="auth-overlay-icon">🔒</span>
+                <span class="auth-overlay-text">Zaloguj się w ustawieniach, aby korzystać z nagród i kar</span>
+                <a href="settings.html" class="btn btn-primary">Przejdź do ustawień</a>
+            </div>
+        `;
+        playerSelectSection.style.position = 'relative';
+        playerSelectSection.appendChild(overlay);
+        return;
+    }
+
+    // Zaznacz aktualnie zalogowanego gracza i zablokuj pozostałych
+    document.querySelectorAll('.player-select-btn').forEach(btn => {
+        const player = btn.dataset.player;
+        const isCurrentPlayer = player === currentPlayerName;
+
+        btn.classList.remove('active', 'locked');
+
+        if (isCurrentPlayer) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.add('locked');
+        }
+    });
+}
+
+/**
  * Ustawia nasłuchiwacze zdarzeń
  */
 function setupShopEventListeners() {
-    // Wybór gracza
-    document.querySelectorAll('.player-select-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.player-select-btn').forEach(b =>
-                b.classList.remove('active')
-            );
-            btn.classList.add('active');
-            selectedPlayer = btn.dataset.player;
-        });
-    });
+    // Wybór gracza jest zablokowany - użytkownik jest automatycznie przypisany do swojego konta
+    // Nie dodajemy event listenerów do przycisków wyboru gracza
 
     // Przyciski kupna - nagrody
     document.getElementById('rewardsGrid').addEventListener('click', (e) => {

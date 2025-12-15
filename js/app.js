@@ -31,7 +31,32 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 function renderClickers() {
     const grid = document.getElementById('clickerGrid');
+    const clickerSection = grid.closest('.clickers');
     grid.innerHTML = '';
+
+    // Sprawdź czy użytkownik jest autoryzowany
+    const isUserAuthorized = isAuthorizedUser();
+    const currentPlayerName = getPlayerNameFromGithub();
+
+    // Pokaż/ukryj overlay dla niezalogowanych
+    let overlay = clickerSection.querySelector('.auth-overlay');
+    if (!isUserAuthorized) {
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'auth-overlay';
+            overlay.innerHTML = `
+                <div class="auth-overlay-content">
+                    <span class="auth-overlay-icon">🔒</span>
+                    <span class="auth-overlay-text">Zaloguj się w ustawieniach, aby dodawać przekleństwa</span>
+                    <a href="settings.html" class="btn btn-primary">Przejdź do ustawień</a>
+                </div>
+            `;
+            clickerSection.style.position = 'relative';
+            clickerSection.appendChild(overlay);
+        }
+    } else if (overlay) {
+        overlay.remove();
+    }
 
     PLAYERS.forEach(player => {
         const monthlySwears = getPlayerMonthlyScore(player);
@@ -41,18 +66,22 @@ function renderClickers() {
         const balanceDisplay = balance >= 0 ? `+${balance}` : balance;
         const balanceClass = balance >= 0 ? 'positive' : 'negative';
 
+        const isCurrentPlayer = player === currentPlayerName;
+
         const card = document.createElement('div');
-        card.className = 'clicker-card';
+        card.className = 'clicker-card' + (isCurrentPlayer ? ' current-player' : '') + (!isUserAuthorized ? ' disabled' : '');
         card.dataset.player = player;
         card.innerHTML = `
             <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
-            <div class="player-name">${player}</div>
+            <div class="player-name">${player}${isCurrentPlayer ? ' (Ty)' : ''}</div>
             <div class="count">${monthlySwears}</div>
             <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
-            <div class="click-hint">Kliknij!</div>
+            <div class="click-hint">${isUserAuthorized ? 'Kliknij!' : '🔒'}</div>
         `;
 
-        card.addEventListener('click', () => handleClick(player, card));
+        if (isUserAuthorized) {
+            card.addEventListener('click', () => handleClick(player, card));
+        }
 
         grid.appendChild(card);
     });
