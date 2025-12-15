@@ -46,15 +46,16 @@ function getGistId() {
  * Pobiera GitHub Token z localStorage
  */
 function getGithubToken() {
-    return localStorage.getItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN);
+    const token = localStorage.getItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN);
+    return token ? token.trim() : null;
 }
 
 /**
  * Zapisuje konfigurację synchronizacji
  */
 function saveSyncConfig(gistId, githubToken, username = null) {
-    localStorage.setItem(SYNC_STORAGE_KEYS.GIST_ID, gistId);
-    localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN, githubToken);
+    localStorage.setItem(SYNC_STORAGE_KEYS.GIST_ID, gistId.trim());
+    localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN, githubToken.trim());
     if (username) {
         localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME, username);
     }
@@ -485,17 +486,27 @@ function mergeNewerString(local, remote) {
  * Testuje połączenie z GitHub API
  */
 async function testConnection(token) {
-    const response = await fetch('https://api.github.com/user', {
-        headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
+    try {
+        const response = await fetch('https://api.github.com/user', {
+            headers: {
+                'Authorization': `token ${token.trim()}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Nieprawidłowy token - sprawdź czy skopiowałeś cały token');
+            }
+            throw new Error(`Błąd GitHub API: ${response.status} ${response.statusText}`);
         }
-    });
 
-    if (!response.ok) {
-        throw new Error('Nieprawidłowy token');
+        const user = await response.json();
+        return user.login;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
+            throw new Error('Błąd sieci - sprawdź połączenie internetowe i czy rozszerzenia przeglądarki nie blokują GitHub API');
+        }
+        throw error;
     }
-
-    const user = await response.json();
-    return user.login;
 }
