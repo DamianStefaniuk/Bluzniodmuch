@@ -1,16 +1,18 @@
 # Bluzniodmuch
 
-Aplikacja webowa do gamifikacji słoiczka na przekleństwa dla Zespołu Wentylacji.
+Aplikacja webowa do gamifikacji "słoiczka na przekleństwa" dla Zespołu Wentylacji.
 
 ## Funkcjonalności
 
 - **Tablica wyników** - ranking graczy z podziałem na miesiąc, rok i ogółem
-- **Kliker** - każdy gracz może dodawać swoje przekleństwa jednym kliknięciem
-- **Sklep fantów** - wydawaj punkty przekleństw na fanty/kary dla zespołu
-- **System statusów** - dynamiczne statusy graczy na podstawie liczby punktów
-- **System bonusów** - automatyczne odejmowanie punktów za nieaktywność
+- **Kliker przekleństw** - każdy zalogowany gracz może dodawać przekleństwa jednym kliknięciem
+- **Sklep nagród i kar** - odbieraj nagrody za punkty dodatnie lub wykonuj kary za punkty ujemne
+- **System punktacji** - bilans punktów oparty na składnikach (przekleństwa, nagrody, kary, bonusy)
+- **System autoryzacji** - tylko zalogowani użytkownicy mogą dodawać przekleństwa i korzystać ze sklepu
+- **System statusów** - dynamiczne statusy graczy na podstawie bilansu punktów
+- **System bonusów** - automatyczne punkty za dni/tygodnie/miesiące bez przekleństw
 - **System trofeów** - osiągnięcia indywidualne i zespołowe
-- **Statystyki zespołu** - podsumowanie aktywności zespołu
+- **Synchronizacja** - dane synchronizowane między urządzeniami przez GitHub Gist
 
 ## Gracze
 
@@ -18,7 +20,71 @@ Aplikacja webowa do gamifikacji słoiczka na przekleństwa dla Zespołu Wentylac
 - Mateusz
 - Tomek
 - Karol
-- Damian
+- Damian (Administrator)
+
+## System punktacji
+
+### Jak działa bilans punktów?
+
+Bilans każdego gracza jest obliczany ze składników:
+
+```
+bilans = bonusy + punkty_z_kar - przekleństwa - wydane_na_nagrody
+```
+
+| Akcja | Wpływ na bilans |
+|-------|-----------------|
+| Przekleństwo | -1 pkt |
+| Dzień bez przekleństwa | +1 pkt |
+| Tydzień bez przekleństwa | +5 pkt (dodatkowo) |
+| Miesiąc bez przekleństwa | +10 pkt (dodatkowo) |
+| Odebranie nagrody | -koszt nagrody |
+| Wykonanie kary | +wartość kary |
+
+### Nagrody vs Kary
+
+- **Nagrody** - dostępne gdy masz punkty dodatnie. Odbierając nagrodę, wydajesz punkty.
+- **Kary** - dostępne gdy masz punkty ujemne. Wykonując karę, poprawiasz swój bilans.
+
+## System statusów
+
+Każdy gracz ma status zależny od bilansu punktów:
+
+| Status | Ikona | Bilans punktów |
+|--------|-------|----------------|
+| Święty | 😇 | 50+ pkt |
+| Grzeczny | 😊 | 20-49 pkt |
+| W normie | 🙂 | 1-19 pkt |
+| Neutralny | 😐 | 0 do -9 pkt |
+| Gorsze dni | 😤 | -10 do -30 pkt |
+| Niegrzeczny | 🤬 | -31 do -50 pkt |
+| Przeklinator | 👹 | -51 i mniej |
+
+## Autoryzacja użytkowników
+
+Aplikacja wymaga zalogowania przez GitHub. Tylko autoryzowani użytkownicy mogą:
+- Dodawać przekleństwa
+- Korzystać ze sklepu nagród i kar
+
+### Konfiguracja użytkowników
+
+Lista autoryzowanych użytkowników znajduje się w pliku `js/sync.js`:
+
+```javascript
+const ALLOWED_USERS = {
+    'GitHubUsername': 'NazwaGracza',
+    'DamianStefaniuk': 'Damian',
+    // ...
+};
+```
+
+### Administratorzy
+
+Administratorzy mają dodatkowe uprawnienia do zarządzania danymi:
+
+```javascript
+const ADMIN_USERS = ['DamianStefaniuk'];
+```
 
 ## Uruchomienie
 
@@ -38,26 +104,43 @@ Po prostu otwórz plik `index.html` w przeglądarce.
 ```
 Bluzniodmuch/
 ├── index.html          # Główna strona z tablicą wyników i klikerami
-├── shop.html           # Sklep fantów
+├── shop.html           # Sklep nagród i kar
 ├── trophies.html       # Strona z trofeami
 ├── settings.html       # Strona ustawień i synchronizacji
 ├── css/
 │   └── style.css       # Style aplikacji
 ├── js/
 │   ├── data.js         # Zarządzanie danymi (localStorage)
-│   ├── sync.js         # Synchronizacja z GitHub Gist
+│   ├── sync.js         # Synchronizacja z GitHub Gist + autoryzacja
 │   ├── app.js          # Logika głównej strony
-│   ├── shop-items.js   # Definicje fantów i statusów (EDYTUJ TEN PLIK!)
+│   ├── shop-items.js   # Definicje nagród, kar i statusów
 │   ├── shop.js         # Logika sklepu
-│   ├── achievements.js # Definicje osiągnięć (EDYTUJ TEN PLIK!)
+│   ├── achievements.js # Definicje osiągnięć
 │   ├── trophies.js     # Logika strony trofeów
 │   └── settings.js     # Logika strony ustawień
+├── image/              # Grafiki i ikony
+│   └── title-swear-jar.svg  # Favicon
 └── README.md
 ```
 
 ## Przechowywanie danych
 
-Dane mogą być przechowywane na dwa sposoby:
+### Struktura danych gracza
+
+```javascript
+{
+    swearCount: 0,           // Liczba przekleństw
+    spentOnRewards: 0,       // Punkty wydane na nagrody
+    earnedFromPenalties: 0,  // Punkty zdobyte z kar
+    bonusGained: 0,          // Punkty z bonusów
+    monthly: {},             // Przekleństwa miesięczne
+    yearly: {},              // Przekleństwa roczne
+    lastActivity: null,      // Data ostatniego przekleństwa
+    rewardedInactiveDays: 0, // Nagrodzone dni nieaktywności
+    rewardedInactiveWeeks: 0,// Nagrodzone tygodnie nieaktywności
+    lastMonthBonusCheck: null // Ostatni sprawdzony miesiąc
+}
+```
 
 ### Tryb lokalny (domyślny)
 - Dane są zapisywane w **localStorage** przeglądarki
@@ -97,45 +180,87 @@ Aby współdzielić dane między urządzeniami:
 ### Jak działa synchronizacja?
 
 - Przy ładowaniu strony dane są automatycznie pobierane z Gist
-- Po każdym kliknięciu (dodaniu przekleństwa) dane są synchronizowane
-- Konflikty są rozwiązywane przez wzięcie większej wartości (żaden klik nie zostanie utracony)
-- Wskaźnik synchronizacji w nagłówku pokazuje status połączenia
+- Po każdej akcji (przekleństwo, zakup) dane są synchronizowane z opóźnieniem 2s
+- Wskaźnik synchronizacji w stopce pokazuje status połączenia
 
-## Przyznawanie osiągnięć
+### Strategia scalania danych
 
-Osiągnięcia przyznaje się ręcznie poprzez edycję pliku `js/achievements.js`.
+| Pole | Strategia |
+|------|-----------|
+| `swearCount` | Większa wartość (więcej przekleństw) |
+| `spentOnRewards` | Większa wartość (więcej wydanych) |
+| `earnedFromPenalties` | Większa wartość (więcej zdobytych) |
+| `bonusGained` | Większa wartość (więcej bonusów) |
+| `monthly/yearly` | Większa wartość dla każdego klucza |
+| `purchases` | Scalanie list bez duplikatów (po ID) |
+| `lastActivity` | Nowsza data |
 
-### Jak dodać osiągnięcie dla gracza:
+Dzięki tej strategii **żadne dane nie zostaną utracone** przy synchronizacji między urządzeniami.
 
-1. Otwórz plik `js/achievements.js`
-2. Znajdź sekcję `AWARDED_ACHIEVEMENTS`
-3. Dodaj nowy wpis:
+## Sklep nagród i kar
+
+### Nagrody (punkty dodatnie)
+
+Gracze z dodatnim bilansem mogą odbierać nagrody:
+- **Zespołowe** - pizza, ciasto, kawa dla wszystkich
+- **Osobiste** - wolne od obowiązków, priorytet wyboru
+
+### Kary (punkty ujemne)
+
+Gracze z ujemnym bilansem mogą poprawić status wykonując kary:
+- **Zadania** - sprzątanie, dyżury
+- **Zabawne** - czapka wstydu, taniec, karaoke
+
+### Dodawanie własnych nagród/kar
+
+Edytuj plik `js/shop-items.js`:
+
+```javascript
+// Nagrody (cost > 0)
+{
+    id: "custom_reward",
+    name: "Nazwa nagrody",
+    description: "Co dostajesz",
+    cost: 25,        // Koszt w punktach
+    icon: "🎁",
+    type: "reward"
+}
+
+// Kary (cost < 0)
+{
+    id: "custom_penalty",
+    name: "Nazwa kary",
+    description: "Co musisz zrobić",
+    cost: -15,       // Wymagane ujemne punkty
+    icon: "⚡",
+    type: "penalty"
+}
+```
+
+## System trofeów
+
+### Przyznawanie osiągnięć
+
+Osiągnięcia przyznaje się poprzez edycję pliku `js/achievements.js`:
 
 ```javascript
 const AWARDED_ACHIEVEMENTS = [
     {
         type: "individual",
-        achievementId: "first_swear",  // ID osiągnięcia
-        player: "Damian",              // Nazwa gracza
-        date: "2025-01-15",            // Data przyznania
-        note: "Komentarz opcjonalny"   // Opcjonalna notatka
+        achievementId: "first_swear",
+        player: "Damian",
+        date: "2025-01-15",
+        note: "Komentarz opcjonalny"
     },
-    // ... więcej osiągnięć
+    {
+        type: "team",
+        achievementId: "team_hundred",
+        date: "2025-02-01"
+    }
 ];
 ```
 
-### Jak dodać osiągnięcie zespołowe:
-
-```javascript
-{
-    type: "team",
-    achievementId: "team_hundred",
-    date: "2025-02-01",
-    note: "Setka w pierwszy miesiąc!"
-}
-```
-
-### Dostępne ID osiągnięć indywidualnych:
+### Dostępne osiągnięcia indywidualne
 
 | ID | Nazwa | Opis |
 |---|---|---|
@@ -145,17 +270,10 @@ const AWARDED_ACHIEVEMENTS = [
 | `hundred_swears` | Legenda | 100 przekleństw łącznie |
 | `month_champion` | Mistrz Miesiąca | Pierwsze miejsce w miesiącu |
 | `year_champion` | Mistrz Roku | Pierwsze miejsce na koniec roku |
-| `monday_starter` | Poniedziałkowy Blues | 5 przekleństw w poniedziałek |
-| `friday_finisher` | Piątkowe Wentylowanie | Najwięcej w piątek |
 | `clean_week` | Święty Tydzień | Tydzień bez przekleństwa |
-| `triple_threat` | Potrójne Uderzenie | 3 w ciągu minuty |
-| `early_bird` | Ranny Ptaszek | Przed 8:00 |
-| `night_owl` | Nocna Sowa | Po 18:00 |
-| `comeback_king` | Król Powrotu | Z ostatniego na pierwsze |
-| `consistent` | Konsekwentny | Codziennie przez tydzień |
 | `humble` | Skromny | Najmniej w miesiącu |
 
-### Dostępne ID osiągnięć zespołowych:
+### Dostępne osiągnięcia zespołowe
 
 | ID | Nazwa | Opis |
 |---|---|---|
@@ -163,80 +281,26 @@ const AWARDED_ACHIEVEMENTS = [
 | `team_five_hundred` | Pięćsetka | 500 łącznie |
 | `team_thousand` | Tysiąc Wentyli | 1000 łącznie |
 | `all_participated` | Wszyscy na Pokładzie | Każdy ma min. 1 |
-| `balanced_team` | Zbalansowany Zespół | Podobne wyniki (±5) |
 | `quiet_month` | Cichy Miesiąc | <20 w miesiącu |
-| `loud_month` | Głośny Miesiąc | >100 w miesiącu |
-| `first_month` | Pierwszy Miesiąc | Pierwszy pełny miesiąc |
-| `anniversary` | Rocznica | Rok prowadzenia |
 
-## Dodawanie nowych osiągnięć
-
-Możesz tworzyć własne osiągnięcia edytując tablice `INDIVIDUAL_ACHIEVEMENTS` lub `TEAM_ACHIEVEMENTS` w pliku `js/achievements.js`:
+### Dodawanie własnych osiągnięć
 
 ```javascript
 {
-    id: "custom_achievement",      // Unikalne ID
-    name: "Nazwa Osiągnięcia",     // Wyświetlana nazwa
-    description: "Jak je zdobyć",  // Opis
-    icon: "🎯"                     // Emoji jako ikona
+    id: "custom_achievement",
+    name: "Nazwa Osiągnięcia",
+    description: "Jak je zdobyć",
+    icon: "🎯"
 }
 ```
 
-## Sklep fantów
+## Technologie
 
-Gracze mogą "odkupywać" swoje grzechy wydając zebrane punkty przekleństw na fanty/kary.
-
-### Jak to działa?
-
-1. Każde przekleństwo = 1 punkt
-2. Punkty można wydać w sklepie na fanty
-3. Wydane punkty są odejmowane od salda gracza
-4. Historia zakupów jest zapisywana
-
-### Kategorie fantów
-
-- **Zespołowe** - pizza, ciasto, kawa dla wszystkich
-- **Osobiste** - sprzątanie, dyżury, obowiązki
-- **Zabawne** - czapka wstydu, taniec, karaoke
-
-### Dodawanie własnych fantów
-
-Edytuj plik `js/shop-items.js` i dodaj do tablicy `SHOP_ITEMS`:
-
-```javascript
-{
-    id: "custom_fant",
-    name: "Nazwa fantu",
-    description: "Co trzeba zrobić",
-    cost: 25,
-    icon: "🎁",
-    category: "team"  // team, personal lub fun
-}
-```
-
-## System statusów
-
-Każdy gracz ma status zależny od liczby punktów (po odjęciu wydanych):
-
-| Status | Ikona | Punkty |
-|--------|-------|--------|
-| Święty | 😇 | 0 |
-| Grzeczny | 😊 | 1-5 |
-| Neutralny | 😐 | 6-15 |
-| Gorsze dni | 😤 | 16-30 |
-| Niegrzeczny | 🤬 | 31-50 |
-| Przeklinator | 👹 | 51+ |
-
-## System bonusów
-
-Aplikacja automatycznie nagradza za dobre zachowanie:
-
-| Bonus | Wartość |
-|-------|---------|
-| Dzień bez przekleństwa | -1 punkt |
-| Cały miesiąc bez przekleństwa | -10 punktów (dodatkowo) |
-
-Bonusy są naliczane automatycznie przy każdym odwiedzeniu strony.
+- HTML5
+- CSS3 (zmienne CSS, Flexbox, Grid)
+- JavaScript (ES6+, async/await)
+- GitHub Gist API (synchronizacja)
+- localStorage (dane lokalne)
 
 ## Autorzy
 

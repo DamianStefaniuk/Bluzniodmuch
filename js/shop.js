@@ -101,16 +101,17 @@ function renderPlayerBalances() {
 
     PLAYERS.forEach(player => {
         const playerData = data.players[player];
-        const balance = playerData ? (playerData.total || 0) : 0;
+        const balance = playerData ? calculatePlayerTotal(playerData) : 0;
         const status = getPlayerStatus(balance);
 
         const balanceEl = document.getElementById(`balance-${player}`);
         const statusEl = document.getElementById(`status-${player}`);
 
         if (balanceEl) {
-            const balanceDisplay = balance >= 0 ? `+${balance}` : `${balance}`;
+            const balanceDisplay = balance > 0 ? `+${balance}` : `${balance}`;
+            const balanceClass = balance > 0 ? 'positive' : (balance < 0 ? 'negative' : 'neutral');
             balanceEl.textContent = balanceDisplay;
-            balanceEl.className = `player-balance ${balance >= 0 ? 'positive' : 'negative'}`;
+            balanceEl.className = `player-balance ${balanceClass}`;
         }
 
         if (statusEl) {
@@ -123,7 +124,7 @@ function renderPlayerBalances() {
     document.querySelectorAll('.player-select-btn').forEach(btn => {
         const player = btn.dataset.player;
         const playerData = data.players[player];
-        const balance = playerData ? (playerData.total || 0) : 0;
+        const balance = playerData ? calculatePlayerTotal(playerData) : 0;
         const status = getPlayerStatus(balance);
         btn.style.borderColor = status.color;
     });
@@ -137,7 +138,7 @@ function getPlayerBalance(playerName) {
     const player = data.players[playerName];
 
     if (!player) return 0;
-    return player.total || 0;
+    return calculatePlayerTotal(player);
 }
 
 /**
@@ -278,20 +279,22 @@ async function completePurchase() {
 
     // Zapisz zakup
     const data = getData();
+    const playerData = data.players[selectedPlayer];
 
     if (isReward) {
-        // Nagroda - odejmij punkty
-        data.players[selectedPlayer].total -= selectedItem.cost;
+        // Nagroda - zwiększ wydane punkty
+        playerData.spentOnRewards = (playerData.spentOnRewards || 0) + selectedItem.cost;
     } else {
-        // Kara - dodaj punkty (poprawa statusu)
-        data.players[selectedPlayer].total += Math.abs(selectedItem.cost);
+        // Kara - zwiększ zdobyte punkty z kar
+        playerData.earnedFromPenalties = (playerData.earnedFromPenalties || 0) + Math.abs(selectedItem.cost);
     }
 
-    // Dodaj do historii zakupów
+    // Dodaj do historii zakupów z unikalnym ID
     if (!data.purchases) {
         data.purchases = [];
     }
     data.purchases.push({
+        id: generateId(),
         player: selectedPlayer,
         itemId: selectedItem.id,
         cost: selectedItem.cost,
@@ -384,13 +387,8 @@ function applyInactivityBonuses() {
             const newDaysToReward = daysSinceActivity - daysRewarded;
 
             if (newDaysToReward > 0) {
-                // Dodaj punkty za nieaktywne dni
-                playerData.total = (playerData.total || 0) + newDaysToReward;
-
-                if (!playerData.bonusGained) {
-                    playerData.bonusGained = 0;
-                }
-                playerData.bonusGained += newDaysToReward;
+                // Dodaj punkty za nieaktywne dni (tylko do bonusGained)
+                playerData.bonusGained = (playerData.bonusGained || 0) + newDaysToReward;
                 playerData.rewardedInactiveDays = daysSinceActivity;
             }
         }
@@ -402,12 +400,7 @@ function applyInactivityBonuses() {
 
         if (newWeeksToReward > 0) {
             const weekBonus = newWeeksToReward * 5;
-            playerData.total = (playerData.total || 0) + weekBonus;
-
-            if (!playerData.bonusGained) {
-                playerData.bonusGained = 0;
-            }
-            playerData.bonusGained += weekBonus;
+            playerData.bonusGained = (playerData.bonusGained || 0) + weekBonus;
             playerData.rewardedInactiveWeeks = fullWeeks;
         }
 
@@ -423,12 +416,7 @@ function applyInactivityBonuses() {
 
             if (prevMonthCount === 0) {
                 // Bonus +10 za cały miesiąc bez przekleństw
-                playerData.total = (playerData.total || 0) + 10;
-
-                if (!playerData.bonusGained) {
-                    playerData.bonusGained = 0;
-                }
-                playerData.bonusGained += 10;
+                playerData.bonusGained = (playerData.bonusGained || 0) + 10;
                 playerData.lastMonthBonusCheck = prevMonthKey;
             }
         }

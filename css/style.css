@@ -975,6 +975,13 @@ footer {
     margin-bottom: 8px;
 }
 
+.bonus-card-simple .bonus-icon-img {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 8px;
+    object-fit: contain;
+}
+
 .bonus-card-simple .bonus-title {
     font-size: 0.9rem;
     color: var(--text-light);
@@ -1161,13 +1168,17 @@ footer {
     font-weight: bold;
 }
 
-/* Points display - positive/negative */
+/* Points display - positive/negative/neutral */
 .positive {
     color: var(--success) !important;
 }
 
 .negative {
     color: var(--secondary) !important;
+}
+
+.neutral {
+    color: var(--text-light) !important;
 }
 
 .player-total.positive {
@@ -1178,12 +1189,20 @@ footer {
     color: var(--secondary) !important;
 }
 
+.player-total.neutral {
+    color: var(--text-light) !important;
+}
+
 .player-balance.positive {
     color: var(--success) !important;
 }
 
 .player-balance.negative {
     color: var(--secondary) !important;
+}
+
+.player-balance.neutral {
+    color: var(--text-light) !important;
 }
 
 /* Shop sections */

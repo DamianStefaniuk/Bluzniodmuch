@@ -63,8 +63,8 @@ function renderClickers() {
         const balance = getPlayerTotalBalance(player);
         const status = getPlayerStatus(balance);
 
-        const balanceDisplay = balance >= 0 ? `+${balance}` : balance;
-        const balanceClass = balance >= 0 ? 'positive' : 'negative';
+        const balanceDisplay = balance > 0 ? `+${balance}` : balance;
+        const balanceClass = balance > 0 ? 'positive' : (balance < 0 ? 'negative' : 'neutral');
 
         const isCurrentPlayer = player === currentPlayerName;
 
@@ -94,7 +94,7 @@ function getPlayerTotalBalance(playerName) {
     const data = getData();
     const player = data.players[playerName];
     if (!player) return 0;
-    return player.total || 0;
+    return calculatePlayerTotal(player);
 }
 
 /**
@@ -116,9 +116,10 @@ function handleClick(playerName, cardElement) {
     const balance = playerData.total || 0;
     const balanceElement = cardElement.querySelector('.player-total');
     if (balanceElement) {
-        const balanceDisplay = balance >= 0 ? `+${balance}` : balance;
+        const balanceDisplay = balance > 0 ? `+${balance}` : balance;
+        const balanceClass = balance > 0 ? 'positive' : (balance < 0 ? 'negative' : 'neutral');
         balanceElement.textContent = `Bilans: ${balanceDisplay} pkt`;
-        balanceElement.className = `player-total ${balance >= 0 ? 'positive' : 'negative'}`;
+        balanceElement.className = `player-total ${balanceClass}`;
     }
 
     // Sprawdź osiągnięcia
@@ -149,8 +150,8 @@ function renderScoreboard() {
         const row = document.createElement('tr');
         row.className = place <= 3 ? `place-${place}` : '';
 
-        const pointsDisplay = player.points >= 0 ? `+${player.points}` : player.points;
-        const pointsClass = player.points >= 0 ? 'positive' : 'negative';
+        const pointsDisplay = player.points > 0 ? `+${player.points}` : player.points;
+        const pointsClass = player.points > 0 ? 'positive' : (player.points < 0 ? 'negative' : 'neutral');
 
         row.innerHTML = `
             <td><span class="place-badge">${place}</span></td>

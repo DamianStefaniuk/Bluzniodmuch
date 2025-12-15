@@ -21,10 +21,10 @@ const ADMIN_USERS = ['DamianStefaniuk'];
 // Lista autoryzowanych użytkowników (GitHub usernames) - tylko ci użytkownicy mogą korzystać z aplikacji
 const ALLOWED_USERS = {
     'DamianStefaniuk': 'Damian',
-    'Jacek': 'Jacek',
-    'Mateusz': 'Mateusz',
-    'Tomek': 'Tomek',
-    'Karol': 'Karol'
+    'jacek4468': 'Jacek',
+    'MateuszCzajkowskiPlum': 'Mateusz',
+    'tomaszkozlow': 'Tomek',
+    'BarolKartoszuk': 'Karol'
 };
 
 /**
@@ -221,14 +221,23 @@ async function saveToGist(scoresData, achievementsData = null) {
 async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka') {
     const initialScores = {
         players: {},
+        purchases: [],
+        lastBonusCheck: null,
         history: {}
     };
 
     PLAYERS.forEach(player => {
         initialScores.players[player] = {
-            total: 0,
+            swearCount: 0,
+            spentOnRewards: 0,
+            earnedFromPenalties: 0,
+            bonusGained: 0,
             monthly: {},
-            yearly: {}
+            yearly: {},
+            lastActivity: null,
+            rewardedInactiveDays: 0,
+            rewardedInactiveWeeks: 0,
+            lastMonthBonusCheck: null
         };
     });
 
@@ -278,8 +287,8 @@ async function syncData() {
         const remoteData = await fetchFromGist();
         const localData = getData();
 
-        // Scala dane - bierze większą wartość dla każdego licznika
-        const mergedData = mergeScores(localData, remoteData.scores);
+        // Scala dane - używa odpowiednich strategii dla każdego pola
+        const mergedData = mergeAllData(localData, remoteData.scores);
 
         // Zapisz lokalnie
         saveData(mergedData);
@@ -294,15 +303,17 @@ async function syncData() {
 }
 
 /**
- * Scala dane z dwóch źródeł - bierze większe wartości
+ * Scala wszystkie dane z dwóch źródeł
  */
-function mergeScores(local, remote) {
+function mergeAllData(local, remote) {
     if (!remote) return local;
     if (!local) return remote;
 
     const merged = {
         players: {},
-        history: local.history || {}
+        purchases: mergePurchases(local.purchases || [], remote.purchases || []),
+        lastBonusCheck: mergeNewerDate(local.lastBonusCheck, remote.lastBonusCheck),
+        history: local.history || remote.history || {}
     };
 
     // Połącz wszystkich graczy z obu źródeł
@@ -312,17 +323,61 @@ function mergeScores(local, remote) {
     ]);
 
     allPlayers.forEach(player => {
-        const localPlayer = local.players?.[player] || { total: 0, monthly: {}, yearly: {} };
-        const remotePlayer = remote.players?.[player] || { total: 0, monthly: {}, yearly: {} };
-
-        merged.players[player] = {
-            total: Math.max(localPlayer.total || 0, remotePlayer.total || 0),
-            monthly: mergeCounters(localPlayer.monthly || {}, remotePlayer.monthly || {}),
-            yearly: mergeCounters(localPlayer.yearly || {}, remotePlayer.yearly || {})
-        };
+        merged.players[player] = mergePlayerData(
+            local.players?.[player],
+            remote.players?.[player]
+        );
     });
 
     return merged;
+}
+
+/**
+ * Scala dane pojedynczego gracza
+ */
+function mergePlayerData(local, remote) {
+    if (!remote) return local || createEmptyPlayer();
+    if (!local) return remote;
+
+    return {
+        // Składniki bilansu - bierzemy większą wartość (więcej = więcej akcji wykonanych)
+        swearCount: Math.max(local.swearCount || 0, remote.swearCount || 0),
+        spentOnRewards: Math.max(local.spentOnRewards || 0, remote.spentOnRewards || 0),
+        earnedFromPenalties: Math.max(local.earnedFromPenalties || 0, remote.earnedFromPenalties || 0),
+        bonusGained: Math.max(local.bonusGained || 0, remote.bonusGained || 0),
+
+        // Liczniki miesięczne i roczne
+        monthly: mergeCounters(local.monthly || {}, remote.monthly || {}),
+        yearly: mergeCounters(local.yearly || {}, remote.yearly || {}),
+
+        // Pola związane z bonusami - bierzemy wartości które wskazują na więcej naliczonych bonusów
+        rewardedInactiveDays: Math.max(local.rewardedInactiveDays || 0, remote.rewardedInactiveDays || 0),
+        rewardedInactiveWeeks: Math.max(local.rewardedInactiveWeeks || 0, remote.rewardedInactiveWeeks || 0),
+
+        // Data ostatniej aktywności - bierzemy nowszą (późniejsze przekleństwo)
+        lastActivity: mergeNewerDate(local.lastActivity, remote.lastActivity),
+
+        // Ostatni sprawdzony miesiąc dla bonusu - bierzemy nowszy
+        lastMonthBonusCheck: mergeNewerString(local.lastMonthBonusCheck, remote.lastMonthBonusCheck)
+    };
+}
+
+/**
+ * Tworzy pustą strukturę gracza
+ */
+function createEmptyPlayer() {
+    return {
+        swearCount: 0,
+        spentOnRewards: 0,
+        earnedFromPenalties: 0,
+        bonusGained: 0,
+        monthly: {},
+        yearly: {},
+        lastActivity: null,
+        rewardedInactiveDays: 0,
+        rewardedInactiveWeeks: 0,
+        lastMonthBonusCheck: null
+    };
 }
 
 /**
@@ -336,6 +391,66 @@ function mergeCounters(local, remote) {
     });
 
     return merged;
+}
+
+/**
+ * Scala listy zakupów - usuwa duplikaty po ID
+ */
+function mergePurchases(local, remote) {
+    const purchaseMap = new Map();
+
+    // Dodaj lokalne zakupy
+    local.forEach(purchase => {
+        if (purchase.id) {
+            purchaseMap.set(purchase.id, purchase);
+        } else {
+            // Dla zakupów bez ID, generuj klucz z danych
+            const key = `${purchase.player}-${purchase.itemId}-${purchase.date}`;
+            purchaseMap.set(key, { ...purchase, id: key });
+        }
+    });
+
+    // Dodaj zdalne zakupy (nie nadpisuje istniejących)
+    remote.forEach(purchase => {
+        if (purchase.id) {
+            if (!purchaseMap.has(purchase.id)) {
+                purchaseMap.set(purchase.id, purchase);
+            }
+        } else {
+            const key = `${purchase.player}-${purchase.itemId}-${purchase.date}`;
+            if (!purchaseMap.has(key)) {
+                purchaseMap.set(key, { ...purchase, id: key });
+            }
+        }
+    });
+
+    // Konwertuj mapę na tablicę i sortuj po dacie
+    return Array.from(purchaseMap.values())
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+/**
+ * Scala daty - bierze nowszą
+ */
+function mergeNewerDate(local, remote) {
+    if (!local) return remote;
+    if (!remote) return local;
+
+    const localDate = new Date(local);
+    const remoteDate = new Date(remote);
+
+    return localDate > remoteDate ? local : remote;
+}
+
+/**
+ * Scala stringi reprezentujące daty/klucze - bierze "większy" (nowszy)
+ */
+function mergeNewerString(local, remote) {
+    if (!local) return remote;
+    if (!remote) return local;
+
+    // Dla kluczy typu "2025-12" - większy string = nowszy miesiąc
+    return local > remote ? local : remote;
 }
 
 /**

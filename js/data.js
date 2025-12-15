@@ -42,6 +42,13 @@ function getMonthName(monthKey) {
 }
 
 /**
+ * Generuje unikalny identyfikator
+ */
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+/**
  * Inicjalizuje dane jeśli nie istnieją i migruje stare dane
  */
 function initializeData() {
@@ -50,18 +57,23 @@ function initializeData() {
     if (!scores) {
         const initialData = {
             players: {},
+            purchases: [],
+            lastBonusCheck: null,
             history: {}
         };
 
         PLAYERS.forEach(player => {
             initialData.players[player] = {
-                total: 0,
                 swearCount: 0,
+                spentOnRewards: 0,
+                earnedFromPenalties: 0,
+                bonusGained: 0,
                 monthly: {},
                 yearly: {},
                 lastActivity: null,
                 rewardedInactiveDays: 0,
-                rewardedInactiveWeeks: 0
+                rewardedInactiveWeeks: 0,
+                lastMonthBonusCheck: null
             };
         });
 
@@ -71,35 +83,78 @@ function initializeData() {
         const data = JSON.parse(scores);
         let needsSave = false;
 
+        // Migracja: dodaj purchases jeśli nie istnieje
+        if (!data.purchases) {
+            data.purchases = [];
+            needsSave = true;
+        }
+
+        // Migracja: dodaj ID do zakupów bez ID
+        data.purchases.forEach(purchase => {
+            if (!purchase.id) {
+                purchase.id = generateId();
+                needsSave = true;
+            }
+        });
+
         PLAYERS.forEach(player => {
             if (!data.players[player]) {
                 data.players[player] = {
-                    total: 0,
                     swearCount: 0,
+                    spentOnRewards: 0,
+                    earnedFromPenalties: 0,
+                    bonusGained: 0,
                     monthly: {},
                     yearly: {},
                     lastActivity: null,
                     rewardedInactiveDays: 0,
-                    rewardedInactiveWeeks: 0
+                    rewardedInactiveWeeks: 0,
+                    lastMonthBonusCheck: null
                 };
                 needsSave = true;
             } else {
-                // Upewnij się że total istnieje (może być ujemny)
-                if (typeof data.players[player].total !== 'number') {
-                    data.players[player].total = 0;
+                const p = data.players[player];
+
+                // Migracja: dodaj brakujące pola składników bilansu
+                if (typeof p.swearCount !== 'number') {
+                    p.swearCount = 0;
                     needsSave = true;
                 }
-                // Dodaj brakujące pola
-                if (typeof data.players[player].swearCount !== 'number') {
-                    data.players[player].swearCount = data.players[player].total > 0 ? data.players[player].total : 0;
+                if (typeof p.spentOnRewards !== 'number') {
+                    p.spentOnRewards = 0;
                     needsSave = true;
                 }
-                if (typeof data.players[player].rewardedInactiveDays !== 'number') {
-                    data.players[player].rewardedInactiveDays = 0;
+                if (typeof p.earnedFromPenalties !== 'number') {
+                    p.earnedFromPenalties = 0;
                     needsSave = true;
                 }
-                if (typeof data.players[player].rewardedInactiveWeeks !== 'number') {
-                    data.players[player].rewardedInactiveWeeks = 0;
+                if (typeof p.bonusGained !== 'number') {
+                    p.bonusGained = 0;
+                    needsSave = true;
+                }
+                if (typeof p.rewardedInactiveDays !== 'number') {
+                    p.rewardedInactiveDays = 0;
+                    needsSave = true;
+                }
+                if (typeof p.rewardedInactiveWeeks !== 'number') {
+                    p.rewardedInactiveWeeks = 0;
+                    needsSave = true;
+                }
+
+                // Migracja: jeśli istnieje stare pole 'total', oblicz składniki
+                if (typeof p.total === 'number') {
+                    // Oblicz aktualny bilans ze składników
+                    const calculatedTotal = (p.bonusGained || 0) + (p.earnedFromPenalties || 0) - (p.swearCount || 0) - (p.spentOnRewards || 0);
+
+                    // Jeśli stary total różni się od obliczonego, skoryguj bonusGained
+                    if (p.total !== calculatedTotal) {
+                        const diff = p.total - calculatedTotal;
+                        p.bonusGained = (p.bonusGained || 0) + diff;
+                        needsSave = true;
+                    }
+
+                    // Usuń stare pole total
+                    delete p.total;
                     needsSave = true;
                 }
             }
@@ -111,6 +166,17 @@ function initializeData() {
     }
 
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.SCORES));
+}
+
+/**
+ * Oblicza bilans punktów gracza na podstawie składników
+ */
+function calculatePlayerTotal(playerData) {
+    if (!playerData) return 0;
+    return (playerData.bonusGained || 0)
+         + (playerData.earnedFromPenalties || 0)
+         - (playerData.swearCount || 0)
+         - (playerData.spentOnRewards || 0);
 }
 
 /**
@@ -137,25 +203,23 @@ function addSwear(playerName) {
 
     if (!data.players[playerName]) {
         data.players[playerName] = {
-            total: 0,
             swearCount: 0,
+            spentOnRewards: 0,
+            earnedFromPenalties: 0,
+            bonusGained: 0,
             monthly: {},
             yearly: {},
-            spent: 0,
             lastActivity: null,
             rewardedInactiveDays: 0,
-            rewardedInactiveWeeks: 0
+            rewardedInactiveWeeks: 0,
+            lastMonthBonusCheck: null
         };
     }
 
     const player = data.players[playerName];
 
-    // Odejmij punkt za przekleństwo
-    player.total--;
-
-    // Zwiększ licznik przekleństw (do statystyk)
-    if (!player.swearCount) player.swearCount = 0;
-    player.swearCount++;
+    // Zwiększ licznik przekleństw (każde przekleństwo = -1 punkt w bilansie)
+    player.swearCount = (player.swearCount || 0) + 1;
 
     // Zwiększ licznik miesięczny przekleństw
     if (!player.monthly[monthKey]) {
@@ -176,7 +240,8 @@ function addSwear(playerName) {
 
     saveData(data);
 
-    return player;
+    // Dodaj obliczony total do zwracanego obiektu dla kompatybilności
+    return { ...player, total: calculatePlayerTotal(player) };
 }
 
 /**
@@ -190,24 +255,24 @@ function getScores(period = 'month') {
     const yearKey = getCurrentYearKey();
 
     const scores = PLAYERS.map(player => {
-        const playerData = data.players[player] || { total: 0, monthly: {}, yearly: {} };
+        const playerData = data.players[player] || {};
         let points = 0;
         let swearCount = 0;
 
         switch (period) {
             case 'month':
                 // Punkty za miesiąc = ujemna liczba przekleństw w miesiącu
-                swearCount = playerData.monthly[monthKey] || 0;
+                swearCount = playerData.monthly?.[monthKey] || 0;
                 points = -swearCount; // każde przekleństwo to -1
                 break;
             case 'year':
                 // Punkty za rok = ujemna liczba przekleństw w roku
-                swearCount = playerData.yearly[yearKey] || 0;
+                swearCount = playerData.yearly?.[yearKey] || 0;
                 points = -swearCount;
                 break;
             case 'all':
-                // Całkowity bilans punktów
-                points = playerData.total || 0;
+                // Całkowity bilans punktów (obliczony ze składników)
+                points = calculatePlayerTotal(playerData);
                 swearCount = playerData.swearCount || 0;
                 break;
         }
@@ -243,7 +308,7 @@ function getPlayerPoints(playerName) {
     const data = getData();
     const player = data.players[playerName];
     if (!player) return 0;
-    return player.total || 0;
+    return calculatePlayerTotal(player);
 }
 
 /**
