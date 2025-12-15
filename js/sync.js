@@ -53,8 +53,34 @@ function getGithubToken() {
 /**
  * Zapisuje konfigurację synchronizacji
  */
+/**
+ * Wyciąga Gist ID z URL lub zwraca samo ID jeśli już jest poprawne
+ */
+function extractGistId(input) {
+    if (!input) return null;
+
+    const trimmed = input.trim();
+
+    // Jeśli to pełny URL, wyciągnij ID
+    // Format: https://gist.github.com/username/gistid lub gist.github.com/username/gistid
+    const urlMatch = trimmed.match(/gist\.github\.com\/[^\/]+\/([a-f0-9]+)/i);
+    if (urlMatch) {
+        return urlMatch[1];
+    }
+
+    // Jeśli to samo ID (32 znaki hex)
+    const idMatch = trimmed.match(/^[a-f0-9]{32}$/i);
+    if (idMatch) {
+        return trimmed;
+    }
+
+    // Zwróć oryginał jeśli nie pasuje do żadnego wzorca
+    return trimmed;
+}
+
 function saveSyncConfig(gistId, githubToken, username = null) {
-    localStorage.setItem(SYNC_STORAGE_KEYS.GIST_ID, gistId.trim());
+    const cleanGistId = extractGistId(gistId);
+    localStorage.setItem(SYNC_STORAGE_KEYS.GIST_ID, cleanGistId);
     localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_TOKEN, githubToken.trim());
     if (username) {
         localStorage.setItem(SYNC_STORAGE_KEYS.GITHUB_USERNAME, username);
