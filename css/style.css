@@ -1051,6 +1051,49 @@ footer {
     transform: translateX(-50%) translateY(0);
 }
 
+/* Achievement Notification */
+.achievement-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(135deg, var(--gold), #f39c12);
+    color: var(--primary);
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 25px rgba(241, 196, 15, 0.4);
+    transform: translateX(120%);
+    transition: transform 0.4s ease;
+    z-index: 1002;
+}
+
+.achievement-notification.show {
+    transform: translateX(0);
+}
+
+.achievement-notification .achievement-icon {
+    font-size: 2.5rem;
+}
+
+.achievement-notification .achievement-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.achievement-notification .achievement-title {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.achievement-notification .achievement-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
 /* Points display - positive/negative */
 .positive {
     color: var(--success) !important;

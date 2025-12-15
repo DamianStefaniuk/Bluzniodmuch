@@ -291,6 +291,14 @@ async function completePurchase() {
         await syncData();
     }
 
+    // Sprawdz osiagniecia
+    if (typeof checkAndAwardAchievements === 'function') {
+        const newAchievements = checkAndAwardAchievements(selectedPlayer);
+        newAchievements.forEach(achievement => {
+            showAchievementNotification(achievement);
+        });
+    }
+
     // Odśwież widoki
     renderPlayerBalances();
     renderPurchaseHistory();

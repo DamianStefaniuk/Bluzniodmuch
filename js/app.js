@@ -83,6 +83,21 @@ function handleClick(playerName, cardElement) {
     const countElement = cardElement.querySelector('.count');
     countElement.textContent = playerData.monthly[getCurrentMonthKey()] || 0;
 
+    // Aktualizuj bilans na karcie
+    const balance = playerData.total || 0;
+    const balanceElement = cardElement.querySelector('.player-total');
+    if (balanceElement) {
+        const balanceDisplay = balance >= 0 ? `+${balance}` : balance;
+        balanceElement.textContent = `Bilans: ${balanceDisplay} pkt`;
+        balanceElement.className = `player-total ${balance >= 0 ? 'positive' : 'negative'}`;
+    }
+
+    // Sprawdz osiagniecia
+    const newAchievements = checkAndAwardAchievements(playerName);
+    newAchievements.forEach(achievement => {
+        showAchievementNotification(achievement);
+    });
+
     // Aktualizuj tablicę i statystyki
     renderScoreboard();
     renderTeamStats();
