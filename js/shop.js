@@ -74,8 +74,15 @@ function createShopItemCard(item, type) {
         : `${Math.abs(item.cost)} pkt`;
 
     const costLabel = type === 'reward' ? 'Koszt' : 'Wymaga';
-    const buttonText = type === 'reward' ? 'Odbierz nagrodę' : 'Wykonaj karę';
+    let buttonText = type === 'reward' ? 'Odbierz nagrodę' : 'Wykonaj karę';
     const buttonClass = type === 'reward' ? 'btn-success' : 'btn-warning';
+
+    // Sprawdź czy przedmiot został już użyty w tym miesiącu
+    const alreadyUsed = selectedPlayer && hasUsedItemThisMonth(selectedPlayer, item.id);
+    if (alreadyUsed) {
+        card.classList.add('used-this-month');
+        buttonText = 'Wykorzystano w tym miesiącu';
+    }
 
     card.innerHTML = `
         <div class="shop-item-icon">${item.icon}</div>
@@ -85,7 +92,8 @@ function createShopItemCard(item, type) {
             <span class="cost-label">${costLabel}:</span>
             <span class="cost-value">${costDisplay}</span>
         </div>
-        <button class="btn ${buttonClass} shop-buy-btn" data-item-id="${item.id}" data-type="${type}">
+        ${alreadyUsed ? '<div class="used-badge">✓ Użyte</div>' : ''}
+        <button class="btn ${buttonClass} shop-buy-btn" data-item-id="${item.id}" data-type="${type}" ${alreadyUsed ? 'disabled' : ''}>
             ${buttonText}
         </button>
     `;
@@ -139,6 +147,25 @@ function getPlayerBalance(playerName) {
 
     if (!player) return 0;
     return calculatePlayerTotal(player);
+}
+
+/**
+ * Sprawdza czy gracz użył danego przedmiotu w bieżącym miesiącu
+ */
+function hasUsedItemThisMonth(playerName, itemId) {
+    const data = getData();
+    const purchases = data.purchases || [];
+    const currentMonth = getCurrentMonthKey();
+
+    return purchases.some(purchase => {
+        if (purchase.player !== playerName || purchase.itemId !== itemId) {
+            return false;
+        }
+        // Sprawdź czy zakup był w bieżącym miesiącu
+        const purchaseDate = new Date(purchase.date);
+        const purchaseMonth = `${purchaseDate.getFullYear()}-${String(purchaseDate.getMonth() + 1).padStart(2, '0')}`;
+        return purchaseMonth === currentMonth;
+    });
 }
 
 /**
@@ -199,6 +226,12 @@ function openPurchaseModal(item) {
     // Sprawdź czy użytkownik jest zalogowany
     if (!isAuthorizedUser() || !selectedPlayer) {
         showNotification('Musisz być zalogowany, aby korzystać z tej funkcji!');
+        return;
+    }
+
+    // Sprawdź czy przedmiot został już użyty w tym miesiącu
+    if (hasUsedItemThisMonth(selectedPlayer, item.id)) {
+        showNotification('Ta nagroda/kara została już wykorzystana w tym miesiącu!');
         return;
     }
 
@@ -264,6 +297,13 @@ function closePurchaseModal() {
 async function completePurchase() {
     if (!selectedItem || !selectedPlayer) return;
 
+    // Dodatkowa weryfikacja - czy przedmiot nie został użyty w tym miesiącu
+    if (hasUsedItemThisMonth(selectedPlayer, selectedItem.id)) {
+        showNotification('Ta nagroda/kara została już wykorzystana w tym miesiącu!');
+        closePurchaseModal();
+        return;
+    }
+
     const balance = getPlayerBalance(selectedPlayer);
     const isReward = selectedItem.type === 'reward';
 
@@ -318,6 +358,7 @@ async function completePurchase() {
     }
 
     // Odśwież widoki
+    renderShop();
     renderPlayerBalances();
     renderPurchaseHistory();
     closePurchaseModal();
@@ -349,6 +390,156 @@ function showNotification(message) {
 }
 
 /**
+ * Sprawdza i zapisuje zwycięzcę poprzedniego miesiąca
+ * Zwycięzca to osoba z NAJMNIEJSZĄ liczbą przekleństw w danym miesiącu (najlepsza)
+ * Przyznaje osiągnięcie "Mistrz [Miesiąca] [Roku]"
+ */
+function checkMonthWinner(data) {
+    const now = new Date();
+    // Sprawdź poprzedni miesiąc
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+    // Sprawdź czy już sprawdzono ten miesiąc (używamy pola lastMonthWinnerCheck na poziomie danych)
+    if (data.lastMonthWinnerCheck === prevMonthKey) {
+        return [];
+    }
+
+    // Znajdź wyniki wszystkich graczy za poprzedni miesiąc
+    const monthlyScores = [];
+    PLAYERS.forEach(playerName => {
+        const player = data.players[playerName];
+        if (!player) return;
+        const swears = player.monthly?.[prevMonthKey] || 0;
+        const balance = calculatePlayerTotal(player);
+        monthlyScores.push({ name: playerName, swears, balance });
+    });
+
+    // Sprawdź czy są gracze
+    if (monthlyScores.length === 0) {
+        data.lastMonthWinnerCheck = prevMonthKey;
+        return [];
+    }
+
+    // Sortuj: najpierw po przekleństwach (mniej = lepiej), przy remisie po bilansie (wyższy = lepiej)
+    monthlyScores.sort((a, b) => {
+        if (a.swears !== b.swears) {
+            return a.swears - b.swears; // Mniej przekleństw = lepszy
+        }
+        return b.balance - a.balance; // Wyższy bilans = lepszy (przy remisie)
+    });
+
+    // Zwycięzca - osoba z najmniejszą liczbą przekleństw (i najwyższym bilansem przy remisie)
+    const winner = monthlyScores[0];
+
+    // Sprawdź czy nie ma remisu na pierwszym miejscu (takie same przekleństwa I bilans)
+    const tiedWinners = monthlyScores.filter(p => p.swears === winner.swears && p.balance === winner.balance);
+
+    // Przyznaj osiągnięcia zwycięzcom
+    const awardedAchievements = [];
+    tiedWinners.forEach(w => {
+        const player = data.players[w.name];
+
+        // Dodaj wygrany miesiąc do listy wygranych
+        if (!player.monthsWon) {
+            player.monthsWon = [];
+        }
+        if (!player.monthsWon.includes(prevMonthKey)) {
+            player.monthsWon.push(prevMonthKey);
+        }
+
+        // Przyznaj osiągnięcie za konkretny miesiąc
+        const achievement = awardMonthChampion(w.name, prevMonthKey);
+        if (achievement) {
+            awardedAchievements.push(achievement);
+        }
+    });
+
+    // Oznacz miesiąc jako sprawdzony
+    data.lastMonthWinnerCheck = prevMonthKey;
+
+    return awardedAchievements;
+}
+
+/**
+ * Sprawdza i zapisuje zwycięzcę poprzedniego roku
+ * Zwycięzca to osoba z NAJMNIEJSZĄ liczbą przekleństw w danym roku
+ * Przy remisie wygrywa osoba z wyższym bilansem
+ * Przyznaje osiągnięcie "Mistrz Roku [YYYY]"
+ */
+function checkYearWinner(data) {
+    const now = new Date();
+
+    // Sprawdzamy tylko w styczniu (początek nowego roku)
+    if (now.getMonth() !== 0) {
+        return [];
+    }
+
+    // Sprawdź poprzedni rok
+    const prevYearKey = (now.getFullYear() - 1).toString();
+
+    // Sprawdź czy już sprawdzono ten rok (używamy pola lastYearWinnerCheck na poziomie danych)
+    if (data.lastYearWinnerCheck === prevYearKey) {
+        return [];
+    }
+
+    // Znajdź wyniki wszystkich graczy za poprzedni rok
+    const yearlyScores = [];
+    PLAYERS.forEach(playerName => {
+        const player = data.players[playerName];
+        if (!player) return;
+        const swears = player.yearly?.[prevYearKey] || 0;
+        const balance = calculatePlayerTotal(player);
+        yearlyScores.push({ name: playerName, swears, balance });
+    });
+
+    // Sprawdź czy są gracze
+    if (yearlyScores.length === 0) {
+        data.lastYearWinnerCheck = prevYearKey;
+        return [];
+    }
+
+    // Sortuj: najpierw po przekleństwach (mniej = lepiej), przy remisie po bilansie (wyższy = lepiej)
+    yearlyScores.sort((a, b) => {
+        if (a.swears !== b.swears) {
+            return a.swears - b.swears; // Mniej przekleństw = lepszy
+        }
+        return b.balance - a.balance; // Wyższy bilans = lepszy (przy remisie)
+    });
+
+    // Zwycięzca - osoba z najmniejszą liczbą przekleństw (i najwyższym bilansem przy remisie)
+    const winner = yearlyScores[0];
+
+    // Sprawdź czy nie ma remisu na pierwszym miejscu (takie same przekleństwa I bilans)
+    const tiedWinners = yearlyScores.filter(p => p.swears === winner.swears && p.balance === winner.balance);
+
+    // Przyznaj osiągnięcia zwycięzcom
+    const awardedAchievements = [];
+    tiedWinners.forEach(w => {
+        const player = data.players[w.name];
+
+        // Dodaj wygrany rok do listy wygranych (jeśli potrzebne)
+        if (!player.yearsWon) {
+            player.yearsWon = [];
+        }
+        if (!player.yearsWon.includes(prevYearKey)) {
+            player.yearsWon.push(prevYearKey);
+        }
+
+        // Przyznaj osiągnięcie za konkretny rok
+        const achievement = awardYearChampion(w.name, prevYearKey);
+        if (achievement) {
+            awardedAchievements.push(achievement);
+        }
+    });
+
+    // Oznacz rok jako sprawdzony
+    data.lastYearWinnerCheck = prevYearKey;
+
+    return awardedAchievements;
+}
+
+/**
  * Stosuje bonusy za nieaktywność
  * - Dzień bez przekleństwa = +1 punkt
  * - Tydzień bez przekleństwa = +5 punktów
@@ -361,6 +552,18 @@ function applyInactivityBonuses() {
 
     // Jeśli już sprawdzono dzisiaj, pomiń
     if (lastBonusCheck === today) return;
+
+    // Sprawdź zwycięzcę poprzedniego miesiąca i przyznaj osiągnięcia
+    const monthChampionAchievements = checkMonthWinner(data);
+    monthChampionAchievements.forEach(achievement => {
+        showAchievementNotification(achievement);
+    });
+
+    // Sprawdź zwycięzcę poprzedniego roku i przyznaj osiągnięcia (tylko w styczniu)
+    const yearChampionAchievements = checkYearWinner(data);
+    yearChampionAchievements.forEach(achievement => {
+        showAchievementNotification(achievement);
+    });
 
     const now = new Date();
 

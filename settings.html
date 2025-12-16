@@ -128,15 +128,28 @@
                 <div class="data-actions" id="dataActionsContainer" style="display: none;">
                     <div class="action-card">
                         <h3>Eksport danych</h3>
-                        <p>Pobierz kopię zapasową wszystkich danych jako plik JSON.</p>
-                        <button class="btn btn-secondary" id="exportBtn">Eksportuj dane</button>
+                        <p>Pobierz kopię zapasową danych i osiągnięć jako pliki JSON.</p>
+                        <div class="export-buttons">
+                            <button class="btn btn-secondary" id="exportDataBtn">Eksportuj dane</button>
+                            <button class="btn btn-secondary" id="exportAchievementsBtn">Eksportuj osiągnięcia</button>
+                            <button class="btn btn-primary" id="exportAllBtn">Eksportuj wszystko</button>
+                        </div>
                     </div>
 
                     <div class="action-card">
                         <h3>Import danych</h3>
-                        <p>Przywróć dane z pliku kopii zapasowej.</p>
-                        <input type="file" id="importFile" accept=".json" style="display: none;">
-                        <button class="btn btn-secondary" id="importBtn">Importuj dane</button>
+                        <p>Przywróć dane z plików kopii zapasowej. Po imporcie dane zostaną wymuszone dla wszystkich urządzeń.</p>
+                        <div class="import-fields">
+                            <div class="import-field">
+                                <label for="importDataFile">Plik danych (scores):</label>
+                                <input type="file" id="importDataFile" accept=".json">
+                            </div>
+                            <div class="import-field">
+                                <label for="importAchievementsFile">Plik osiągnięć (opcjonalnie):</label>
+                                <input type="file" id="importAchievementsFile" accept=".json">
+                            </div>
+                            <button class="btn btn-primary" id="importBtn">Importuj i wymuś synchronizację</button>
+                        </div>
                     </div>
 
                     <div class="action-card danger">
@@ -162,6 +175,8 @@
     <script src="js/data.js"></script>
     <script src="js/sync.js"></script>
     <script src="js/shop-items.js"></script>
+    <script src="js/month-icons.js"></script>
+    <script src="js/year-icons.js"></script>
     <script src="js/achievements.js"></script>
     <script src="js/settings.js"></script>
 </body>

@@ -57,8 +57,16 @@ function renderTeamTrophies() {
         const card = document.createElement('div');
         card.className = 'trophy-card unlocked';
 
+        // Obsługa ikony - emoji lub obrazek
+        let iconHtml;
+        if (achievement.hasImage && achievement.image) {
+            iconHtml = `<img src="${achievement.image}" alt="${achievement.name}" class="trophy-icon-img">`;
+        } else {
+            iconHtml = achievement.icon;
+        }
+
         card.innerHTML = `
-            <div class="trophy-icon">${achievement.icon}</div>
+            <div class="trophy-icon">${iconHtml}</div>
             <div class="trophy-name">${achievement.name}</div>
             <div class="trophy-description">${achievement.description}</div>
             <div class="trophy-date">Zdobyte: ${formatDate(achievement.date)}</div>
@@ -84,12 +92,20 @@ function renderPlayerTrophies(playerName) {
     // Nagłówek ze statystykami
     const header = document.createElement('div');
     header.className = 'player-stats-header';
-    header.innerHTML = `
-        <p>Zdobyte trofea: <strong>${stats.earned}/${stats.total}</strong> (${stats.percentage}%)</p>
+
+    let statsHtml = `<p>Trofea podstawowe: <strong>${stats.staticEarned}/${stats.staticTotal}</strong> (${stats.percentage}%)</p>`;
+    if (stats.monthChampionCount > 0) {
+        statsHtml += `<p>Wygrane miesiące: <strong>${stats.monthChampionCount}</strong> 🏆</p>`;
+    }
+    if (stats.yearChampionCount > 0) {
+        statsHtml += `<p>Wygrane lata: <strong>${stats.yearChampionCount}</strong> 🏅</p>`;
+    }
+    statsHtml += `
         <div class="progress-bar">
             <div class="progress-fill" style="width: ${stats.percentage}%"></div>
         </div>
     `;
+    header.innerHTML = statsHtml;
     display.appendChild(header);
 
     if (playerAchievements.length === 0) {
@@ -108,8 +124,16 @@ function renderPlayerTrophies(playerName) {
         const card = document.createElement('div');
         card.className = 'trophy-card unlocked';
 
+        // Obsługa ikony - emoji lub obrazek
+        let iconHtml;
+        if (achievement.hasImage && achievement.image) {
+            iconHtml = `<img src="${achievement.image}" alt="${achievement.name}" class="trophy-icon-img">`;
+        } else {
+            iconHtml = achievement.icon;
+        }
+
         card.innerHTML = `
-            <div class="trophy-icon">${achievement.icon}</div>
+            <div class="trophy-icon">${iconHtml}</div>
             <div class="trophy-name">${achievement.name}</div>
             <div class="trophy-description">${achievement.description}</div>
             <div class="trophy-date">Zdobyte: ${formatDate(achievement.date)}</div>
@@ -133,8 +157,17 @@ function renderLegend() {
     getAllIndividualAchievements().forEach(achievement => {
         const card = document.createElement('div');
         card.className = 'trophy-card';
+
+        // Obsługa ikony - emoji lub obrazek
+        let iconHtml;
+        if (achievement.image) {
+            iconHtml = `<img src="${achievement.image}" alt="${achievement.name}" class="trophy-icon-img">`;
+        } else {
+            iconHtml = achievement.icon;
+        }
+
         card.innerHTML = `
-            <div class="trophy-icon">${achievement.icon}</div>
+            <div class="trophy-icon">${iconHtml}</div>
             <div class="trophy-name">${achievement.name}</div>
             <div class="trophy-description">${achievement.description}</div>
         `;
@@ -149,8 +182,17 @@ function renderLegend() {
     getAllTeamAchievements().forEach(achievement => {
         const card = document.createElement('div');
         card.className = 'trophy-card';
+
+        // Obsługa ikony - emoji lub obrazek
+        let iconHtml;
+        if (achievement.image) {
+            iconHtml = `<img src="${achievement.image}" alt="${achievement.name}" class="trophy-icon-img">`;
+        } else {
+            iconHtml = achievement.icon;
+        }
+
         card.innerHTML = `
-            <div class="trophy-icon">${achievement.icon}</div>
+            <div class="trophy-icon">${iconHtml}</div>
             <div class="trophy-name">${achievement.name}</div>
             <div class="trophy-description">${achievement.description}</div>
         `;

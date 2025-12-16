@@ -308,6 +308,12 @@ section h2 {
     margin-bottom: 10px;
 }
 
+.trophy-icon-img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+}
+
 .trophy-name {
     font-weight: bold;
     color: var(--primary);
@@ -1151,6 +1157,12 @@ footer {
     font-size: 2.5rem;
 }
 
+.achievement-notification .achievement-icon-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
 .achievement-notification .achievement-info {
     display: flex;
     flex-direction: column;
@@ -1279,6 +1291,50 @@ footer {
 
 .btn-warning:hover:not(:disabled) {
     background: #d68910;
+}
+
+/* Used this month - item already used */
+.shop-item-card.used-this-month {
+    opacity: 0.6;
+    position: relative;
+}
+
+.shop-item-card.used-this-month::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.03) 10px,
+        rgba(0, 0, 0, 0.03) 20px
+    );
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+.used-badge {
+    display: inline-block;
+    background: var(--text-light);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.shop-item-card.used-this-month .shop-buy-btn {
+    background: var(--text-light);
+    cursor: not-allowed;
+}
+
+.shop-item-card.used-this-month .shop-buy-btn:hover {
+    background: var(--text-light);
 }
 
 /* Bonus cards - positive/negative */
@@ -1453,6 +1509,69 @@ footer {
 
 .player-status-display {
     font-size: 1rem;
+}
+
+/* Export/Import buttons */
+.export-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.export-buttons .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+.import-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.import-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.import-field label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.import-field input[type="file"] {
+    padding: 10px;
+    border: 2px dashed var(--text-light);
+    border-radius: 8px;
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.import-field input[type="file"]:hover {
+    border-color: var(--primary);
+    background: var(--background);
+}
+
+.import-field input[type="file"]::file-selector-button {
+    padding: 8px 16px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 5px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.import-field input[type="file"]::file-selector-button:hover {
+    background: #1a252f;
+}
+
+.import-fields .btn {
+    margin-top: 10px;
 }
 
 /* Responsive */

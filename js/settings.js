@@ -2,6 +2,42 @@
  * Bluzniodmuch - Strona ustawień
  */
 
+/**
+ * Pobiera plik JSON do pobrania
+ */
+function downloadJsonFile(content, filenamePrefix) {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Czyta plik asynchronicznie
+ */
+function readFileAsync(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = (error) => reject(error);
+        reader.readAsText(file);
+    });
+}
+
+/**
+ * Wymusza upload danych do Gist z flagą wymuszającą reset na innych urządzeniach
+ * Używane po imporcie, aby wymusić nowe dane dla wszystkich urządzeń
+ */
+async function forceUploadToGist() {
+    // Użyj funkcji z sync.js która ustawia forceResetTimestamp
+    return await forceResetSync();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeData();
     updateSyncStatus();
@@ -288,42 +324,84 @@ function setupSettingsEventListeners() {
         }
     });
 
-    // Eksport danych
-    document.getElementById('exportBtn').addEventListener('click', () => {
-        const data = exportData();
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `bluzniodmuch_backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-
-        URL.revokeObjectURL(url);
+    // Eksport danych (tylko scores)
+    document.getElementById('exportDataBtn').addEventListener('click', () => {
+        downloadJsonFile(exportData(), 'bluzniodmuch_data');
         showResult('Dane wyeksportowane!');
     });
 
-    // Import danych
-    document.getElementById('importBtn').addEventListener('click', () => {
-        document.getElementById('importFile').click();
+    // Eksport osiągnięć
+    document.getElementById('exportAchievementsBtn').addEventListener('click', () => {
+        const achievements = getAwardedAchievements();
+        downloadJsonFile(JSON.stringify(achievements, null, 2), 'bluzniodmuch_achievements');
+        showResult('Osiągnięcia wyeksportowane!');
     });
 
-    document.getElementById('importFile').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    // Eksport wszystkiego (dane + osiągnięcia)
+    document.getElementById('exportAllBtn').addEventListener('click', () => {
+        downloadJsonFile(exportData(), 'bluzniodmuch_data');
+        const achievements = getAwardedAchievements();
+        downloadJsonFile(JSON.stringify(achievements, null, 2), 'bluzniodmuch_achievements');
+        showResult('Dane i osiągnięcia wyeksportowane!');
+    });
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            if (confirm('Czy na pewno chcesz zaimportować dane? Obecne dane zostaną nadpisane.')) {
-                const success = importData(event.target.result);
-                if (success) {
-                    showResult('Dane zaimportowane pomyślnie!');
-                } else {
-                    showResult('Błąd importu - nieprawidłowy format pliku', true);
+    // Import danych
+    document.getElementById('importBtn').addEventListener('click', async () => {
+        const dataFile = document.getElementById('importDataFile').files[0];
+        const achievementsFile = document.getElementById('importAchievementsFile').files[0];
+
+        if (!dataFile && !achievementsFile) {
+            showResult('Wybierz przynajmniej jeden plik do importu', true);
+            return;
+        }
+
+        if (!confirm('Czy na pewno chcesz zaimportować dane? Obecne dane zostaną nadpisane i wymuszona zostanie synchronizacja dla wszystkich urządzeń.')) {
+            return;
+        }
+
+        try {
+            let dataImported = false;
+            let achievementsImported = false;
+
+            // Import danych
+            if (dataFile) {
+                const dataContent = await readFileAsync(dataFile);
+                const success = importData(dataContent);
+                if (!success) {
+                    showResult('Błąd importu danych - nieprawidłowy format pliku', true);
+                    return;
+                }
+                dataImported = true;
+            }
+
+            // Import osiągnięć
+            if (achievementsFile) {
+                const achievementsContent = await readFileAsync(achievementsFile);
+                try {
+                    const achievements = JSON.parse(achievementsContent);
+                    saveAwardedAchievements(achievements);
+                    achievementsImported = true;
+                } catch (e) {
+                    showResult('Błąd importu osiągnięć - nieprawidłowy format pliku', true);
+                    return;
                 }
             }
-        };
-        reader.readAsText(file);
+
+            // Wymuś synchronizację do Gist (nadpisanie danych zdalnych)
+            if (isSyncConfigured()) {
+                await forceUploadToGist();
+                showResult('Import zakończony! Dane zostały wymuszone na serwerze.');
+            } else {
+                showResult('Import zakończony! Skonfiguruj synchronizację, aby udostępnić dane innym.');
+            }
+
+            // Wyczyść pola plików
+            document.getElementById('importDataFile').value = '';
+            document.getElementById('importAchievementsFile').value = '';
+
+        } catch (error) {
+            showResult('Błąd podczas importu: ' + error.message, true);
+        }
     });
 
     // Reset danych

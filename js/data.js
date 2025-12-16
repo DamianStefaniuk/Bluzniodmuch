@@ -73,7 +73,9 @@ function initializeData() {
                 lastActivity: null,
                 rewardedInactiveDays: 0,
                 rewardedInactiveWeeks: 0,
-                lastMonthBonusCheck: null
+                lastMonthBonusCheck: null,
+                monthsWon: [],
+                yearsWon: []
             };
         });
 
@@ -109,7 +111,9 @@ function initializeData() {
                     lastActivity: null,
                     rewardedInactiveDays: 0,
                     rewardedInactiveWeeks: 0,
-                    lastMonthBonusCheck: null
+                    lastMonthBonusCheck: null,
+                    monthsWon: [],
+                    yearsWon: []
                 };
                 needsSave = true;
             } else {
@@ -138,6 +142,14 @@ function initializeData() {
                 }
                 if (typeof p.rewardedInactiveWeeks !== 'number') {
                     p.rewardedInactiveWeeks = 0;
+                    needsSave = true;
+                }
+                if (!Array.isArray(p.monthsWon)) {
+                    p.monthsWon = [];
+                    needsSave = true;
+                }
+                if (!Array.isArray(p.yearsWon)) {
+                    p.yearsWon = [];
                     needsSave = true;
                 }
 
@@ -249,7 +261,10 @@ function addSwear(playerName) {
  * - month: bilans punktów (reaguje na zakupy), swearCount = przekleństwa w miesiącu
  * - year: liczba przekleństw w roku
  * - all: całkowita liczba przekleństw
- * Sortowanie: month - najwyższy bilans = 1 miejsce; year/all - najmniej przekleństw = 1 miejsce
+ *
+ * Sortowanie:
+ * - month: najwyższy bilans = 1 miejsce; przy remisie: mniej przekleństw w miesiącu wygrywa
+ * - year/all: najmniej przekleństw = 1 miejsce; przy remisie: wyższy bilans wygrywa
  */
 function getScores(period = 'month') {
     const data = getData();
@@ -260,11 +275,12 @@ function getScores(period = 'month') {
         const playerData = data.players[player] || {};
         let points = 0;
         let swearCount = 0;
+        let balance = calculatePlayerTotal(playerData);
 
         switch (period) {
             case 'month':
                 // Miesiąc: bilans punktów, ale swearCount to przekleństwa w miesiącu
-                points = calculatePlayerTotal(playerData);
+                points = balance;
                 swearCount = playerData.monthly?.[monthKey] || 0;
                 break;
             case 'year':
@@ -279,16 +295,27 @@ function getScores(period = 'month') {
                 break;
         }
 
-        return { name: player, points, swearCount };
+        return { name: player, points, swearCount, balance };
     });
 
-    // Sortowanie:
-    // - month: od najwyższego bilansu (najwięcej punktów = 1 miejsce)
-    // - year/all: od najniższego (najmniej przekleństw = 1 miejsce)
-    if (period === 'year' || period === 'all') {
-        return scores.sort((a, b) => a.points - b.points);
+    // Sortowanie z obsługą remisów:
+    if (period === 'month') {
+        // Miesiąc: od najwyższego bilansu, przy remisie mniej przekleństw wygrywa
+        return scores.sort((a, b) => {
+            if (b.points !== a.points) {
+                return b.points - a.points; // Wyższy bilans = lepszy
+            }
+            return a.swearCount - b.swearCount; // Mniej przekleństw = lepszy
+        });
+    } else {
+        // Rok/Ogółem: od najmniejszej liczby przekleństw, przy remisie wyższy bilans wygrywa
+        return scores.sort((a, b) => {
+            if (a.points !== b.points) {
+                return a.points - b.points; // Mniej przekleństw = lepszy
+            }
+            return b.balance - a.balance; // Wyższy bilans = lepszy
+        });
     }
-    return scores.sort((a, b) => b.points - a.points);
 }
 
 /**

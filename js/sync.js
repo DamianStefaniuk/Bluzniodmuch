@@ -292,7 +292,9 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
             lastActivity: null,
             rewardedInactiveDays: 0,
             rewardedInactiveWeeks: 0,
-            lastMonthBonusCheck: null
+            lastMonthBonusCheck: null,
+            monthsWon: [],
+            yearsWon: []
         };
     });
 
@@ -332,6 +334,7 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
 
 /**
  * Synchronizuje dane - pobiera z Gist i scala z lokalnymi
+ * Jeśli zdalne dane mają nowszy forceResetTimestamp, wymusza nadpisanie lokalnych
  */
 async function syncData() {
     if (!isSyncConfigured()) {
@@ -342,24 +345,64 @@ async function syncData() {
         const remoteData = await fetchFromGist();
         const localData = getData();
 
-        // Scala dane wyników - używa odpowiednich strategii dla każdego pola
-        const mergedData = mergeAllData(localData, remoteData.scores);
+        // Sprawdź czy zdalne dane wymuszają reset
+        const remoteForceReset = remoteData.scores?.forceResetTimestamp || 0;
+        const localForceReset = localData.forceResetTimestamp || 0;
+        const lastSyncTime = getLastSyncTime()?.getTime() || 0;
 
-        // Scala osiągnięcia
-        const localAchievements = getLocalAchievements();
-        const mergedAchievements = mergeAchievements(localAchievements, remoteData.achievements);
+        let mergedData;
+        let mergedAchievements;
+
+        if (remoteForceReset > localForceReset && remoteForceReset > lastSyncTime) {
+            // Wymuszony reset - nadpisz lokalne dane zdalnymi (bez scalania)
+            console.log('Wykryto wymuszony reset - nadpisywanie danych lokalnych');
+            mergedData = remoteData.scores;
+            mergedAchievements = remoteData.achievements || { individual: {}, team: [] };
+        } else {
+            // Normalne scalanie
+            mergedData = mergeAllData(localData, remoteData.scores);
+
+            const localAchievements = getLocalAchievements();
+            mergedAchievements = mergeAchievements(localAchievements, remoteData.achievements);
+        }
 
         // Zapisz lokalnie
         saveData(mergedData);
         saveLocalAchievements(mergedAchievements);
 
-        // Zapisz na Gist
-        await saveToGist(mergedData, mergedAchievements);
+        // Zapisz na Gist (tylko jeśli nie było wymuszonego resetu)
+        if (!(remoteForceReset > localForceReset && remoteForceReset > lastSyncTime)) {
+            await saveToGist(mergedData, mergedAchievements);
+        }
 
         return { success: true, message: 'Synchronizacja zakończona pomyślnie' };
     } catch (error) {
         return { success: false, message: error.message };
     }
+}
+
+/**
+ * Wymusza upload danych do Gist z ustawieniem znacznika reset
+ * Inne urządzenia przy synchronizacji nadpiszą swoje lokalne dane
+ */
+async function forceResetSync() {
+    if (!isSyncConfigured()) {
+        throw new Error('Synchronizacja nie jest skonfigurowana');
+    }
+
+    const scoresData = getData();
+    const achievementsData = getLocalAchievements();
+
+    // Ustaw znacznik wymuszenia resetu
+    scoresData.forceResetTimestamp = Date.now();
+
+    // Zapisz lokalnie
+    saveData(scoresData);
+
+    // Wyślij do Gist
+    await saveToGist(scoresData, achievementsData);
+
+    return { success: true, message: 'Wymuszony reset wysłany do serwera' };
 }
 
 /**
@@ -391,7 +434,11 @@ function mergeAllData(local, remote) {
         players: {},
         purchases: mergePurchases(local.purchases || [], remote.purchases || []),
         lastBonusCheck: mergeNewerDate(local.lastBonusCheck, remote.lastBonusCheck),
-        history: local.history || remote.history || {}
+        lastMonthWinnerCheck: mergeNewerString(local.lastMonthWinnerCheck, remote.lastMonthWinnerCheck),
+        lastYearWinnerCheck: mergeNewerString(local.lastYearWinnerCheck, remote.lastYearWinnerCheck),
+        history: local.history || remote.history || {},
+        // Zachowaj wyższy timestamp wymuszenia resetu
+        forceResetTimestamp: Math.max(local.forceResetTimestamp || 0, remote.forceResetTimestamp || 0)
     };
 
     // Połącz wszystkich graczy z obu źródeł
@@ -436,7 +483,13 @@ function mergePlayerData(local, remote) {
         lastActivity: mergeNewerDate(local.lastActivity, remote.lastActivity),
 
         // Ostatni sprawdzony miesiąc dla bonusu - bierzemy nowszy
-        lastMonthBonusCheck: mergeNewerString(local.lastMonthBonusCheck, remote.lastMonthBonusCheck)
+        lastMonthBonusCheck: mergeNewerString(local.lastMonthBonusCheck, remote.lastMonthBonusCheck),
+
+        // Wygrane miesiące - union bez duplikatów
+        monthsWon: mergeArraysUnique(local.monthsWon || [], remote.monthsWon || []),
+
+        // Wygrane lata - union bez duplikatów
+        yearsWon: mergeArraysUnique(local.yearsWon || [], remote.yearsWon || [])
     };
 }
 
@@ -454,8 +507,17 @@ function createEmptyPlayer() {
         lastActivity: null,
         rewardedInactiveDays: 0,
         rewardedInactiveWeeks: 0,
-        lastMonthBonusCheck: null
+        lastMonthBonusCheck: null,
+        monthsWon: [],
+        yearsWon: []
     };
+}
+
+/**
+ * Scala tablice - union bez duplikatów
+ */
+function mergeArraysUnique(local, remote) {
+    return [...new Set([...local, ...remote])];
 }
 
 /**
