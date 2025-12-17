@@ -82,9 +82,9 @@ const INDIVIDUAL_ACHIEVEMENTS = [
         description: "Wykonaj pierwszą karę",
         icon: "🙏",
         image: null,  // np: 'image/achievement-first-penalty.png'
-        condition: (player, allData) => {
+        condition: (player, allData, playerName) => {
             const purchases = allData.purchases || [];
-            return purchases.some(p => p.type === 'penalty');
+            return purchases.some(p => p.type === 'penalty' && p.player === playerName);
         }
     },
     {
@@ -93,9 +93,9 @@ const INDIVIDUAL_ACHIEVEMENTS = [
         description: "Odbierz pierwszą nagrodę",
         icon: "🎁",
         image: null,  // np: 'image/achievement-first-reward.png'
-        condition: (player, allData) => {
+        condition: (player, allData, playerName) => {
             const purchases = allData.purchases || [];
-            return purchases.some(p => p.type === 'reward');
+            return purchases.some(p => p.type === 'reward' && p.player === playerName);
         }
     },
     {
@@ -163,7 +163,7 @@ const INDIVIDUAL_ACHIEVEMENTS = [
         description: "Cały miesiąc bez przekleństwa",
         icon: "🗓️",
         image: null,  // np: 'image/achievement-clean-month.png'
-        condition: (player) => player.lastMonthBonusCheck !== null && player.lastMonthBonusCheck !== undefined
+        condition: (player) => (player.cleanMonths?.length || 0) >= 1
     },
     {
         id: "five_penalties",

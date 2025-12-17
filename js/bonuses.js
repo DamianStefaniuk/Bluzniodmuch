@@ -276,6 +276,12 @@ function applyInactivityBonuses() {
                 // Bonus +10 za cały miesiąc bez przekleństw
                 playerData.bonusGained = (playerData.bonusGained || 0) + 10;
                 playerData.lastMonthBonusCheck = prevMonthKey;
+
+                // Zapisz czysty miesiąc do listy (dla osiągnięć)
+                if (!playerData.cleanMonths) playerData.cleanMonths = [];
+                if (!playerData.cleanMonths.includes(prevMonthKey)) {
+                    playerData.cleanMonths.push(prevMonthKey);
+                }
             }
         }
     });

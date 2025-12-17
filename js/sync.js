@@ -491,7 +491,10 @@ function mergePlayerData(local, remote) {
         monthsWon: mergeArraysUnique(local.monthsWon || [], remote.monthsWon || []),
 
         // Wygrane lata - union bez duplikatów
-        yearsWon: mergeArraysUnique(local.yearsWon || [], remote.yearsWon || [])
+        yearsWon: mergeArraysUnique(local.yearsWon || [], remote.yearsWon || []),
+
+        // Czyste miesiące (bez przekleństw) - union bez duplikatów
+        cleanMonths: mergeArraysUnique(local.cleanMonths || [], remote.cleanMonths || [])
     };
 }
 
@@ -511,7 +514,8 @@ function createEmptyPlayer() {
         rewardedInactiveWeeks: 0,
         lastMonthBonusCheck: null,
         monthsWon: [],
-        yearsWon: []
+        yearsWon: [],
+        cleanMonths: []
     };
 }
 

@@ -76,7 +76,8 @@ function initializeData() {
                 rewardedInactiveWeeks: 0,
                 lastMonthBonusCheck: null,
                 monthsWon: [],
-                yearsWon: []
+                yearsWon: [],
+                cleanMonths: [] // Miesiące bez przekleństw z naliczonym bonusem
             };
         });
 
@@ -158,6 +159,18 @@ function initializeData() {
                 }
                 if (!Array.isArray(p.yearsWon)) {
                     p.yearsWon = [];
+                    needsSave = true;
+                }
+                if (!Array.isArray(p.cleanMonths)) {
+                    p.cleanMonths = [];
+                    needsSave = true;
+                }
+
+                // Migracja: reset lastMonthBonusCheck jeśli jest starsze niż trackingStartDate
+                const trackingStart = data.trackingStartDate || '2025-12-15T00:00:00.000Z';
+                const trackingStartMonth = trackingStart.substring(0, 7); // "2025-12"
+                if (p.lastMonthBonusCheck && p.lastMonthBonusCheck < trackingStartMonth) {
+                    p.lastMonthBonusCheck = null;
                     needsSave = true;
                 }
 
