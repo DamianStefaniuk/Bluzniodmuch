@@ -13,6 +13,7 @@ let isSyncing = false;
  */
 document.addEventListener('DOMContentLoaded', async () => {
     initializeData();
+    applyInactivityBonuses(); // Nalicz bonusy za nieaktywność
     renderClickers();
     renderScoreboard();
     renderTeamStats();

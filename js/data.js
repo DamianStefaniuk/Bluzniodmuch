@@ -59,7 +59,8 @@ function initializeData() {
             players: {},
             purchases: [],
             lastBonusCheck: null,
-            history: {}
+            history: {},
+            trackingStartDate: new Date().toISOString() // Data rozpoczęcia śledzenia
         };
 
         PLAYERS.forEach(player => {
@@ -98,6 +99,13 @@ function initializeData() {
                 needsSave = true;
             }
         });
+
+        // Migracja: dodaj trackingStartDate jeśli nie istnieje
+        // Domyślnie 15.12.2025 (data startu aplikacji)
+        if (!data.trackingStartDate) {
+            data.trackingStartDate = '2025-12-15T00:00:00.000Z';
+            needsSave = true;
+        }
 
         PLAYERS.forEach(player => {
             if (!data.players[player]) {

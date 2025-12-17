@@ -9,6 +9,8 @@ let currentPlayer = 'Jacek';
  * Inicjalizacja strony trofeów
  */
 document.addEventListener('DOMContentLoaded', () => {
+    initializeData();
+    applyInactivityBonuses(); // Nalicz bonusy za nieaktywność
     renderTeamTrophies();
     renderPlayerTrophies(currentPlayer);
     renderLegend();

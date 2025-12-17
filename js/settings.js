@@ -40,6 +40,7 @@ async function forceUploadToGist() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeData();
+    applyInactivityBonuses(); // Nalicz bonusy za nieaktywność
     updateSyncStatus();
     updatePlayerSelection();
     updateDataManagementAccess();

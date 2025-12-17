@@ -438,7 +438,9 @@ function mergeAllData(local, remote) {
         lastYearWinnerCheck: mergeNewerString(local.lastYearWinnerCheck, remote.lastYearWinnerCheck),
         history: local.history || remote.history || {},
         // Zachowaj wyższy timestamp wymuszenia resetu
-        forceResetTimestamp: Math.max(local.forceResetTimestamp || 0, remote.forceResetTimestamp || 0)
+        forceResetTimestamp: Math.max(local.forceResetTimestamp || 0, remote.forceResetTimestamp || 0),
+        // Zachowaj najwcześniejszą datę startu śledzenia
+        trackingStartDate: mergeOlderDate(local.trackingStartDate, remote.trackingStartDate)
     };
 
     // Połącz wszystkich graczy z obu źródeł
@@ -580,6 +582,20 @@ function mergeNewerDate(local, remote) {
     const remoteDate = new Date(remote);
 
     return localDate > remoteDate ? local : remote;
+}
+
+/**
+ * Scala daty - bierze starszą (wcześniejszą)
+ * Używane np. dla trackingStartDate - chcemy zachować najwcześniejszą datę
+ */
+function mergeOlderDate(local, remote) {
+    if (!local) return remote;
+    if (!remote) return local;
+
+    const localDate = new Date(local);
+    const remoteDate = new Date(remote);
+
+    return localDate < remoteDate ? local : remote;
 }
 
 /**
