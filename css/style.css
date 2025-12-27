@@ -1409,6 +1409,78 @@ footer {
     pointer-events: none;
 }
 
+/* Clicker Card Blocked (urlop/weekend) */
+.clicker-card.blocked {
+    filter: grayscale(70%);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.clicker-card.blocked:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.clicker-card.blocked:active {
+    transform: none;
+    background: linear-gradient(135deg, var(--primary), #34495e);
+}
+
+.clicker-card.on-vacation {
+    border: 3px dashed var(--accent);
+}
+
+.block-status {
+    font-size: 0.85rem;
+    margin-top: 8px;
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    display: inline-block;
+}
+
+/* Shake Animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake-animation {
+    animation: shake 0.5s ease;
+}
+
+/* Blocked Notification */
+.blocked-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 25px rgba(231, 76, 60, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.3s ease;
+    z-index: 1001;
+}
+
+.blocked-notification.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.blocked-notification .blocked-icon {
+    font-size: 1.5rem;
+}
+
+.blocked-notification .blocked-message {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
 /* Current Player Highlight */
 .clicker-card.current-player {
     border: 3px solid var(--accent);

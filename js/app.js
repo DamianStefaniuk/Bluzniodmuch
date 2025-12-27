@@ -59,6 +59,9 @@ function renderClickers() {
         overlay.remove();
     }
 
+    // Sprawdź czy jest weekend
+    const weekendNow = isWeekend();
+
     PLAYERS.forEach(player => {
         const monthlySwears = getPlayerMonthlyScore(player);
         const balance = getPlayerTotalBalance(player);
@@ -69,16 +72,53 @@ function renderClickers() {
 
         const isCurrentPlayer = player === currentPlayerName;
 
+        // Sprawdź czy gracz jest zablokowany (urlop lub weekend)
+        const isOnVacation = isPlayerOnVacation(player);
+        const isBlocked = isOnVacation || weekendNow;
+
+        // Ustal status blokady
+        let blockReason = null;
+        let blockIcon = '';
+        let blockText = '';
+        if (isOnVacation) {
+            blockReason = 'vacation';
+            blockIcon = '🏖️';
+            blockText = 'Na urlopie';
+        } else if (weekendNow) {
+            blockReason = 'weekend';
+            blockIcon = '📅';
+            blockText = 'Weekend';
+        }
+
         const card = document.createElement('div');
-        card.className = 'clicker-card' + (isCurrentPlayer ? ' current-player' : '') + (!isUserAuthorized ? ' disabled' : '');
+        card.className = 'clicker-card'
+            + (isCurrentPlayer ? ' current-player' : '')
+            + (!isUserAuthorized ? ' disabled' : '')
+            + (isBlocked ? ' blocked' : '')
+            + (isOnVacation ? ' on-vacation' : '');
         card.dataset.player = player;
-        card.innerHTML = `
+        if (blockReason) {
+            card.dataset.blockReason = blockReason;
+        }
+
+        // Generuj HTML karty
+        let cardHtml = `
             <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
             <div class="player-name">${player}</div>
             <div class="count">${monthlySwears}</div>
             <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
-            <div class="click-hint">${isUserAuthorized ? 'Kliknij!' : '🔒'}</div>
         `;
+
+        // Dodaj informację o blokadzie lub hint
+        if (isBlocked) {
+            cardHtml += `<div class="block-status">${blockIcon} ${blockText}</div>`;
+        } else if (isUserAuthorized) {
+            cardHtml += `<div class="click-hint">Kliknij!</div>`;
+        } else {
+            cardHtml += `<div class="click-hint">🔒</div>`;
+        }
+
+        card.innerHTML = cardHtml;
 
         if (isUserAuthorized) {
             card.addEventListener('click', () => handleClick(player, card));
@@ -104,6 +144,24 @@ function getPlayerTotalBalance(playerName) {
 function handleClick(playerName, cardElement) {
     // Dodaj przekleństwo
     const playerData = addSwear(playerName);
+
+    // Sprawdź czy akcja została zablokowana
+    if (playerData.blocked) {
+        // Animacja shake dla zablokowanej karty
+        cardElement.classList.add('shake-animation');
+        setTimeout(() => cardElement.classList.remove('shake-animation'), 500);
+
+        // Pokaż powiadomienie o blokadzie
+        let message = '';
+        if (playerData.reason === 'vacation') {
+            message = `${playerName} jest na urlopie - nie można dodać przekleństwa`;
+        } else if (playerData.reason === 'weekend') {
+            message = 'Weekend - gra jest wstrzymana do poniedziałku';
+        }
+
+        showBlockedNotification(message);
+        return;
+    }
 
     // Animacja
     cardElement.classList.add('pop-animation');
@@ -135,6 +193,34 @@ function handleClick(playerName, cardElement) {
 
     // Zaplanuj synchronizację
     scheduleSyncAfterAction();
+}
+
+/**
+ * Pokazuje powiadomienie o zablokowanej akcji
+ */
+function showBlockedNotification(message) {
+    // Usuń istniejące powiadomienie jeśli jest
+    const existing = document.querySelector('.blocked-notification');
+    if (existing) {
+        existing.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = 'blocked-notification';
+    notification.innerHTML = `
+        <span class="blocked-icon">🚫</span>
+        <span class="blocked-message">${message}</span>
+    `;
+    document.body.appendChild(notification);
+
+    // Animacja wejścia
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    // Usuń po 3 sekundach
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 /**
