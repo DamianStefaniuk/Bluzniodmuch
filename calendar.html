@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluzniodmuch - Kalendarz Urlopów</title>
+    <link rel="icon" type="image/svg+xml" href="image/title-swear-jar.svg">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bluzniodmuch</h1>
+            <p class="subtitle">Kalendarz Urlopów</p>
+            <nav>
+                <a href="index.html">Tablica</a>
+                <a href="shop.html">Sklep</a>
+                <a href="trophies.html">Trofea</a>
+                <a href="calendar.html" class="active">Kalendarz</a>
+                <a href="settings.html">Ustawienia</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="calendar-section">
+                <h2>Kalendarz Urlopów</h2>
+
+                <div class="calendar-navigation">
+                    <button class="btn btn-secondary" id="prevMonth">&lt; Poprzedni</button>
+                    <span class="calendar-month-label" id="monthLabel"></span>
+                    <button class="btn btn-secondary" id="nextMonth">Następny &gt;</button>
+                </div>
+
+                <div class="calendar-legend" id="calendarLegend">
+                </div>
+
+                <div class="calendar-grid" id="calendarGrid">
+                    <div class="calendar-header">Pon</div>
+                    <div class="calendar-header">Wt</div>
+                    <div class="calendar-header">Śr</div>
+                    <div class="calendar-header">Czw</div>
+                    <div class="calendar-header">Pt</div>
+                    <div class="calendar-header">Sob</div>
+                    <div class="calendar-header">Nie</div>
+                </div>
+            </section>
+
+            <section class="vacation-form-section" id="vacationFormSection" style="display: none;">
+                <h2>Dodaj Urlop</h2>
+                <p class="vacation-info">Zaznacz okres swojego urlopu. W tym czasie Twój wynik będzie zablokowany.</p>
+
+                <form id="vacationForm" class="vacation-form">
+                    <div class="form-group">
+                        <label for="startDate">Data początkowa:</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">Data końcowa:</label>
+                        <input type="date" id="endDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Dodaj urlop</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="my-vacations-section" id="myVacationsSection" style="display: none;">
+                <h2>Moje Urlopy</h2>
+                <div id="myVacationsList" class="vacations-list">
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="sync-indicator" id="syncIndicator" title="Kliknij aby zsynchronizować">
+                <span id="syncIcon">⚪</span>
+                <span id="syncText">Offline</span>
+            </div>
+            <p>Zespół Wentylacji &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/shop-items.js"></script>
+    <script src="js/month-icons.js"></script>
+    <script src="js/year-icons.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/bonuses.js"></script>
+    <script src="js/calendar.js"></script>
+</body>
+</html>

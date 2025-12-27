@@ -48,6 +48,114 @@ function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
+// ============================================
+// FUNKCJE DNI ROBOCZYCH
+// ============================================
+
+/**
+ * Sprawdza czy dana data to dzień roboczy (pon-pt)
+ * @param {Date|string} date - data do sprawdzenia
+ * @returns {boolean}
+ */
+function isWorkday(date = new Date()) {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const dayOfWeek = d.getDay(); // 0 = niedziela, 1 = poniedziałek, ..., 6 = sobota
+    return dayOfWeek >= 1 && dayOfWeek <= 5;
+}
+
+/**
+ * Sprawdza czy dzisiaj jest weekend (sob-nie)
+ * @returns {boolean}
+ */
+function isWeekend(date = new Date()) {
+    return !isWorkday(date);
+}
+
+/**
+ * Liczy dni robocze między dwiema datami (włącznie z obiema jeśli są robocze)
+ * @param {Date} startDate - data początkowa
+ * @param {Date} endDate - data końcowa
+ * @returns {number} - liczba dni roboczych
+ */
+function countWorkdaysBetween(startDate, endDate) {
+    let count = 0;
+    const current = new Date(startDate);
+    current.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+
+    while (current <= end) {
+        if (isWorkday(current)) {
+            count++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+
+    return count;
+}
+
+/**
+ * Liczy dni robocze od daty do dziś (nie licząc daty początkowej, licząc dziś jeśli roboczy)
+ * @param {Date|string} fromDate - data początkowa
+ * @returns {number} - liczba dni roboczych
+ */
+function countWorkdaysSince(fromDate) {
+    const start = typeof fromDate === 'string' ? new Date(fromDate) : new Date(fromDate);
+    start.setHours(0, 0, 0, 0);
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // Zacznij od następnego dnia po dacie początkowej
+    const current = new Date(start);
+    current.setDate(current.getDate() + 1);
+
+    let count = 0;
+    while (current <= now) {
+        if (isWorkday(current)) {
+            count++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+
+    return count;
+}
+
+/**
+ * Liczy dni robocze w danym miesiącu
+ * @param {number} year - rok
+ * @param {number} month - miesiąc (0-11)
+ * @returns {number} - liczba dni roboczych
+ */
+function countWorkdaysInMonth(year, month) {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    return countWorkdaysBetween(firstDay, lastDay);
+}
+
+/**
+ * Liczy dni robocze w poprzednim miesiącu, w których gracz nie przeklinał
+ * Uwzględnia tylko dni robocze od początku miesiąca (lub od trackingStartDate jeśli później)
+ * @param {object} playerData - dane gracza
+ * @param {string} monthKey - klucz miesiąca "YYYY-MM"
+ * @param {Date} trackingStartDate - data rozpoczęcia śledzenia
+ * @returns {object} - { workdays: liczba dni roboczych, swearCount: liczba przekleństw }
+ */
+function getMonthWorkdayStats(playerData, monthKey, trackingStartDate) {
+    const [year, month] = monthKey.split('-').map(Number);
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const lastDayOfMonth = new Date(year, month, 0);
+
+    // Użyj późniejszej daty: początek miesiąca lub trackingStartDate
+    const startDate = trackingStartDate > firstDayOfMonth ? trackingStartDate : firstDayOfMonth;
+
+    const workdays = countWorkdaysBetween(startDate, lastDayOfMonth);
+    const swearCount = playerData.monthly?.[monthKey] || 0;
+
+    return { workdays, swearCount };
+}
+
 /**
  * Inicjalizuje dane jeśli nie istnieją i migruje stare dane
  */
@@ -228,8 +336,23 @@ function saveData(data) {
 
 /**
  * Dodaje przekleństwo dla gracza (każde przekleństwo = -1 punkt)
+ * Blokuje dodawanie jeśli gracz jest na urlopie lub jest weekend
  */
 function addSwear(playerName) {
+    // Sprawdź czy jest weekend - jeśli tak, zablokuj
+    if (isWeekend()) {
+        const data = getData();
+        const player = data.players[playerName] || {};
+        return { ...player, total: calculatePlayerTotal(player), blocked: true, reason: 'weekend' };
+    }
+
+    // Sprawdź czy gracz jest na urlopie - jeśli tak, zablokuj
+    if (isPlayerOnVacation(playerName)) {
+        const data = getData();
+        const player = data.players[playerName] || {};
+        return { ...player, total: calculatePlayerTotal(player), blocked: true, reason: 'vacation' };
+    }
+
     const data = getData();
     const monthKey = getCurrentMonthKey();
     const yearKey = getCurrentYearKey();
@@ -385,4 +508,173 @@ function importData(jsonString) {
         console.error('Błąd importu danych:', e);
         return false;
     }
+}
+
+// ============================================
+// FUNKCJE URLOPOWE
+// ============================================
+
+/**
+ * Pobiera urlopy wszystkich graczy
+ */
+function getVacations() {
+    const data = getData();
+    return data.vacations || {};
+}
+
+/**
+ * Pobiera urlopy konkretnego gracza
+ */
+function getPlayerVacations(playerName) {
+    const vacations = getVacations();
+    return vacations[playerName] || [];
+}
+
+/**
+ * Sprawdza czy gracz jest na urlopie w danym dniu
+ * @param {string} playerName - nazwa gracza
+ * @param {Date|string} date - data do sprawdzenia (domyślnie dzisiaj)
+ * @returns {boolean}
+ */
+function isPlayerOnVacation(playerName, date = new Date()) {
+    const checkDate = typeof date === 'string' ? new Date(date) : date;
+    const checkDateStr = checkDate.toISOString().split('T')[0];
+
+    const playerVacations = getPlayerVacations(playerName);
+
+    return playerVacations.some(vacation => {
+        const startDate = vacation.startDate;
+        const endDate = vacation.endDate;
+        return checkDateStr >= startDate && checkDateStr <= endDate;
+    });
+}
+
+/**
+ * Dodaje urlop dla gracza
+ * Automatycznie łączy nachodzące na siebie urlopy
+ * @param {string} playerName - nazwa gracza
+ * @param {string} startDate - data początkowa (YYYY-MM-DD)
+ * @param {string} endDate - data końcowa (YYYY-MM-DD)
+ * @returns {object} - dodany urlop
+ */
+function addVacation(playerName, startDate, endDate) {
+    const data = getData();
+
+    if (!data.vacations) {
+        data.vacations = {};
+    }
+
+    if (!data.vacations[playerName]) {
+        data.vacations[playerName] = [];
+    }
+
+    // Dodaj nowy urlop
+    const newVacation = {
+        id: generateId(),
+        startDate: startDate,
+        endDate: endDate,
+        createdAt: new Date().toISOString()
+    };
+
+    data.vacations[playerName].push(newVacation);
+
+    // Scal nachodzące urlopy
+    data.vacations[playerName] = mergeOverlappingVacations(data.vacations[playerName]);
+
+    saveData(data);
+
+    return newVacation;
+}
+
+/**
+ * Usuwa urlop gracza
+ * @param {string} playerName - nazwa gracza
+ * @param {string} vacationId - ID urlopu do usunięcia
+ * @returns {boolean} - czy usunięto
+ */
+function removeVacation(playerName, vacationId) {
+    const data = getData();
+
+    if (!data.vacations || !data.vacations[playerName]) {
+        return false;
+    }
+
+    const initialLength = data.vacations[playerName].length;
+    data.vacations[playerName] = data.vacations[playerName].filter(v => v.id !== vacationId);
+
+    if (data.vacations[playerName].length < initialLength) {
+        saveData(data);
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Scala nachodzące na siebie urlopy
+ * @param {Array} vacations - tablica urlopów
+ * @returns {Array} - scalone urlopy
+ */
+function mergeOverlappingVacations(vacations) {
+    if (vacations.length <= 1) return vacations;
+
+    // Sortuj po dacie początkowej
+    const sorted = [...vacations].sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    const merged = [sorted[0]];
+
+    for (let i = 1; i < sorted.length; i++) {
+        const current = sorted[i];
+        const last = merged[merged.length - 1];
+
+        // Sprawdź czy urlopy nachodzą na siebie lub są przyległe
+        // Dodajemy 1 dzień do last.endDate aby sprawdzić przyległość
+        const lastEndPlusOne = new Date(last.endDate);
+        lastEndPlusOne.setDate(lastEndPlusOne.getDate() + 1);
+        const lastEndPlusOneStr = lastEndPlusOne.toISOString().split('T')[0];
+
+        if (current.startDate <= lastEndPlusOneStr) {
+            // Scal - weź późniejszą datę końcową
+            if (current.endDate > last.endDate) {
+                last.endDate = current.endDate;
+            }
+            // Zachowaj najstarszy ID
+        } else {
+            // Nie nachodzą - dodaj jako osobny
+            merged.push(current);
+        }
+    }
+
+    return merged;
+}
+
+/**
+ * Pobiera urlopy wszystkich graczy w danym miesiącu
+ * @param {number} year - rok
+ * @param {number} month - miesiąc (0-11)
+ * @returns {object} - urlopy per gracz dla danego miesiąca
+ */
+function getVacationsForMonth(year, month) {
+    const vacations = getVacations();
+    const result = {};
+
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+    const monthEndStr = monthEnd.toISOString().split('T')[0];
+
+    Object.keys(vacations).forEach(playerName => {
+        const playerVacations = vacations[playerName] || [];
+
+        // Filtruj urlopy które nachodzą na dany miesiąc
+        const relevantVacations = playerVacations.filter(v => {
+            return v.endDate >= monthStartStr && v.startDate <= monthEndStr;
+        });
+
+        if (relevantVacations.length > 0) {
+            result[playerName] = relevantVacations;
+        }
+    });
+
+    return result;
 }

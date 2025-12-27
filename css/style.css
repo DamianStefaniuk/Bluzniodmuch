@@ -1574,6 +1574,182 @@ footer {
     margin-top: 10px;
 }
 
+/* Calendar Page */
+.calendar-section {
+    overflow: hidden;
+}
+
+.calendar-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.calendar-month-label {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.legend-label {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+}
+
+.calendar-header {
+    background: var(--primary);
+    color: white;
+    padding: 10px 5px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.calendar-header:first-child {
+    border-radius: 8px 0 0 0;
+}
+
+.calendar-header:nth-child(7) {
+    border-radius: 0 8px 0 0;
+}
+
+.calendar-day {
+    background: var(--background);
+    min-height: 70px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.calendar-day.empty {
+    background: transparent;
+}
+
+.calendar-day.today {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(243, 156, 18, 0.1));
+    border: 2px solid var(--accent);
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+.vacation-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-top: auto;
+}
+
+.vacation-indicator {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    opacity: 0.8;
+}
+
+/* Vacation Form */
+.vacation-form-section {
+    background: var(--card-bg);
+}
+
+.vacation-info {
+    color: var(--text-light);
+    margin-bottom: 20px;
+}
+
+.vacation-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.vacation-form .form-group {
+    flex: 1;
+    min-width: 200px;
+    margin-bottom: 0;
+}
+
+.vacation-form .form-actions {
+    flex-basis: 100%;
+}
+
+/* My Vacations */
+.vacations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vacation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--background);
+    border-radius: 10px;
+}
+
+.vacation-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.vacation-range {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.vacation-days {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.no-vacations {
+    color: var(--text-light);
+    text-align: center;
+    padding: 20px;
+}
+
+.btn-small {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     header h1 {
@@ -1596,5 +1772,48 @@ footer {
 
     .bonus-cards {
         grid-template-columns: 1fr;
+    }
+
+    .calendar-day {
+        min-height: 50px;
+    }
+
+    .calendar-header {
+        padding: 8px 3px;
+        font-size: 0.75rem;
+    }
+
+    .day-number {
+        font-size: 0.8rem;
+    }
+
+    .vacation-indicator {
+        height: 4px;
+    }
+
+    .calendar-navigation {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .calendar-month-label {
+        order: -1;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .vacation-form {
+        flex-direction: column;
+    }
+
+    .vacation-form .form-group {
+        width: 100%;
+    }
+
+    .vacation-item {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
     }
 }

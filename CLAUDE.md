@@ -37,6 +37,7 @@ All data is stored in `localStorage` under keys prefixed with `bluzniodmuch_`. W
 | `shop.js` | Shop page logic (purchase flow, monthly limits) |
 | `trophies.js` | Trophies page rendering |
 | `settings.js` | Settings page, sync configuration |
+| `calendar.js` | Calendar page, vacation management |
 
 ### Key Data Structures
 
@@ -74,11 +75,52 @@ All data is stored in `localStorage` under keys prefixed with `bluzniodmuch_`. W
 
 Achievements in `achievements.js` have `condition` functions that receive `(playerData, allPlayersData, playerName)` and return boolean. They're auto-checked after each action and stored in localStorage.
 
+### Workday System
+
+The application only tracks activity on workdays (Monday-Friday). On weekends:
+- Swear counts cannot be added (`isWeekend()` blocks `addSwear()`)
+- No bonus points are awarded
+- Achievements are not awarded
+
+Key functions in `data.js`:
+- `isWorkday(date?)` - checks if date is Mon-Fri
+- `isWeekend(date?)` - checks if date is Sat-Sun
+- `countWorkdaysSince(fromDate)` - counts workdays since a date
+- `countWorkdaysBetween(start, end)` - counts workdays in range
+
+Bonus calculation:
+- **Daily bonus**: +1 point per workday without swearing
+- **Weekly bonus**: +5 points per 5 workdays without swearing
+- **Monthly bonus**: +10 points for entire month without swearing
+
+### Vacation System
+
+Players can mark vacation periods in the calendar. During vacation:
+- No bonus points for inactivity are awarded
+- Swear counts cannot be added
+- Achievements are not awarded
+
+**Vacation data** (in `data.vacations[playerName]`):
+```javascript
+[{
+    id: "uniqueId",
+    startDate: "YYYY-MM-DD",
+    endDate: "YYYY-MM-DD",
+    createdAt: "ISO date"
+}]
+```
+
+Key functions in `data.js`:
+- `isPlayerOnVacation(playerName, date?)` - checks if player is on vacation
+- `addVacation(playerName, startDate, endDate)` - adds vacation (auto-merges overlapping)
+- `removeVacation(playerName, vacationId)` - removes vacation
+
 ## Pages
 
 - `index.html` - Scoreboard + clickers (main page)
 - `shop.html` - Rewards and penalties shop
 - `trophies.html` - Player and team achievements
+- `calendar.html` - Vacation calendar (view all players, manage own vacations)
 - `settings.html` - Sync configuration, player selection
 
 ## Adding New Features

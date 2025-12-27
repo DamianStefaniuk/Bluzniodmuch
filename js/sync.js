@@ -277,6 +277,7 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
     const initialScores = {
         players: {},
         purchases: [],
+        vacations: {},
         lastBonusCheck: null,
         history: {}
     };
@@ -433,6 +434,7 @@ function mergeAllData(local, remote) {
     const merged = {
         players: {},
         purchases: mergePurchases(local.purchases || [], remote.purchases || []),
+        vacations: mergeVacations(local.vacations || {}, remote.vacations || {}),
         lastBonusCheck: mergeNewerDate(local.lastBonusCheck, remote.lastBonusCheck),
         lastMonthWinnerCheck: mergeNewerString(local.lastMonthWinnerCheck, remote.lastMonthWinnerCheck),
         lastYearWinnerCheck: mergeNewerString(local.lastYearWinnerCheck, remote.lastYearWinnerCheck),
@@ -454,6 +456,52 @@ function mergeAllData(local, remote) {
             local.players?.[player],
             remote.players?.[player]
         );
+    });
+
+    return merged;
+}
+
+/**
+ * Scala urlopy z dwóch źródeł
+ * Strategia: union po ID dla każdego gracza, następnie scalanie nachodzących
+ */
+function mergeVacations(local, remote) {
+    const merged = {};
+
+    // Połącz wszystkich graczy z obu źródeł
+    const allPlayers = new Set([
+        ...Object.keys(local || {}),
+        ...Object.keys(remote || {})
+    ]);
+
+    allPlayers.forEach(player => {
+        const localVacations = local[player] || [];
+        const remoteVacations = remote[player] || [];
+
+        // Połącz urlopy po ID (union bez duplikatów)
+        const vacationMap = new Map();
+
+        localVacations.forEach(v => {
+            vacationMap.set(v.id, v);
+        });
+
+        remoteVacations.forEach(v => {
+            if (!vacationMap.has(v.id)) {
+                vacationMap.set(v.id, v);
+            }
+        });
+
+        // Konwertuj na tablicę i scal nachodzące
+        let playerVacations = Array.from(vacationMap.values());
+
+        // Scal nachodzące urlopy (używając funkcji z data.js jeśli dostępna)
+        if (typeof mergeOverlappingVacations === 'function') {
+            playerVacations = mergeOverlappingVacations(playerVacations);
+        }
+
+        if (playerVacations.length > 0) {
+            merged[player] = playerVacations;
+        }
     });
 
     return merged;

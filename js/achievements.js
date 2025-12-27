@@ -304,8 +304,19 @@ function saveAwardedAchievements(awarded) {
 /**
  * Sprawdza i przyznaje osiągnięcia dla gracza
  * Zwraca tablicę nowo przyznanych osiągnięć
+ * Blokuje przyznawanie osiągnięć graczom na urlopie lub w weekend
  */
 function checkAndAwardAchievements(playerName) {
+    // W weekend nie przyznajemy osiągnięć
+    if (typeof isWeekend === 'function' && isWeekend()) {
+        return [];
+    }
+
+    // Pomiń graczy na urlopie - nie przyznajemy osiągnięć
+    if (typeof isPlayerOnVacation === 'function' && isPlayerOnVacation(playerName)) {
+        return [];
+    }
+
     const data = getData();
     const playerData = data.players[playerName];
     if (!playerData) return [];

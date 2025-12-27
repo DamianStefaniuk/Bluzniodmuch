@@ -183,10 +183,10 @@ function checkYearWinner(data) {
 }
 
 /**
- * Stosuje bonusy za nieaktywność
- * - Dzień bez przekleństwa = +1 punkt
- * - Tydzień bez przekleństwa = +5 punktów
- * - Miesiąc bez przekleństwa = +10 punktów
+ * Stosuje bonusy za nieaktywność (TYLKO DNI ROBOCZE pon-pt)
+ * - Dzień roboczy bez przekleństwa = +1 punkt
+ * - Tydzień roboczy (5 dni) bez przekleństwa = +5 punktów
+ * - Miesiąc bez przekleństwa (wszystkie dni robocze) = +10 punktów
  */
 function applyInactivityBonuses() {
     const data = getData();
@@ -195,6 +195,16 @@ function applyInactivityBonuses() {
 
     // Jeśli już sprawdzono dzisiaj, tylko sprawdź osiągnięcia i zakończ
     if (lastBonusCheck === today) {
+        checkAndShowNewAchievements();
+        return;
+    }
+
+    // W weekend nie naliczamy bonusów
+    if (isWeekend()) {
+        // Ale nadal sprawdzamy osiągnięcia i zwycięzców
+        checkMonthWinner(data);
+        checkYearWinner(data);
+        saveData(data);
         checkAndShowNewAchievements();
         return;
     }
@@ -221,6 +231,11 @@ function applyInactivityBonuses() {
     PLAYERS.forEach(player => {
         if (!data.players[player]) return;
 
+        // Pomiń graczy na urlopie - nie naliczamy bonusów
+        if (isPlayerOnVacation(player)) {
+            return;
+        }
+
         const playerData = data.players[player];
 
         // Dla graczy bez aktywności (nigdy nie przeklinali) - używamy daty startu śledzenia
@@ -229,30 +244,30 @@ function applyInactivityBonuses() {
             ? new Date(playerData.lastActivity)
             : trackingStartDate;
 
-        // Oblicz dni nieaktywności (od ostatniego przekleństwa lub od początku śledzenia)
-        const daysSinceActivity = Math.floor((now - referenceDate) / (1000 * 60 * 60 * 24));
+        // Oblicz DNI ROBOCZE nieaktywności (od ostatniego przekleństwa lub od początku śledzenia)
+        const workdaysSinceActivity = countWorkdaysSince(referenceDate);
 
-        // Bonus za dni bez przekleństw (+1 punkt za dzień)
-        if (daysSinceActivity > 0) {
+        // Bonus za dni robocze bez przekleństw (+1 punkt za dzień roboczy)
+        if (workdaysSinceActivity > 0) {
             const daysRewarded = playerData.rewardedInactiveDays || 0;
-            const newDaysToReward = daysSinceActivity - daysRewarded;
+            const newDaysToReward = workdaysSinceActivity - daysRewarded;
 
             if (newDaysToReward > 0) {
-                // Dodaj punkty za nieaktywne dni (tylko do bonusGained)
+                // Dodaj punkty za nieaktywne dni robocze (tylko do bonusGained)
                 playerData.bonusGained = (playerData.bonusGained || 0) + newDaysToReward;
-                playerData.rewardedInactiveDays = daysSinceActivity;
+                playerData.rewardedInactiveDays = workdaysSinceActivity;
             }
         }
 
-        // Bonus za pełne tygodnie bez przekleństw (+5 punktów za tydzień)
-        const fullWeeks = Math.floor(daysSinceActivity / 7);
+        // Bonus za pełne tygodnie robocze bez przekleństw (+5 punktów za tydzień = 5 dni roboczych)
+        const fullWorkWeeks = Math.floor(workdaysSinceActivity / 5); // 5 dni roboczych = 1 tydzień
         const weeksRewarded = playerData.rewardedInactiveWeeks || 0;
-        const newWeeksToReward = fullWeeks - weeksRewarded;
+        const newWeeksToReward = fullWorkWeeks - weeksRewarded;
 
         if (newWeeksToReward > 0) {
             const weekBonus = newWeeksToReward * 5;
             playerData.bonusGained = (playerData.bonusGained || 0) + weekBonus;
-            playerData.rewardedInactiveWeeks = fullWeeks;
+            playerData.rewardedInactiveWeeks = fullWorkWeeks;
         }
 
         // Bonus za cały miesiąc bez przekleństw (+10 punktów)
@@ -268,7 +283,7 @@ function applyInactivityBonuses() {
         // Przyznaj bonus tylko jeśli:
         // 1. Nie sprawdzono jeszcze tego miesiąca
         // 2. Poprzedni miesiąc jest >= miesiąca startu śledzenia (aplikacja działała w tym miesiącu)
-        // 3. Gracz nie przeklinał w poprzednim miesiącu
+        // 3. Gracz nie przeklinał w poprzednim miesiącu (w żadnym dniu roboczym)
         if (lastMonthChecked !== prevMonthKey && prevMonthKey >= trackingStartMonthKey) {
             const prevMonthCount = playerData.monthly?.[prevMonthKey] || 0;
 
