@@ -280,7 +280,8 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
         vacations: {},
         holidays: [],
         lastBonusCheck: null,
-        history: {}
+        history: {},
+        trackingStartDate: new Date().toISOString()
     };
 
     PLAYERS.forEach(player => {
@@ -296,7 +297,8 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
             rewardedInactiveWeeks: 0,
             lastMonthBonusCheck: null,
             monthsWon: [],
-            yearsWon: []
+            yearsWon: [],
+            cleanMonths: []
         };
     });
 
@@ -466,6 +468,7 @@ function mergeAllData(local, remote) {
 /**
  * Scala urlopy z dwóch źródeł
  * Strategia: union po ID dla każdego gracza, następnie scalanie nachodzących
+ * Uwzględnia soft delete - jeśli urlop jest usunięty, zachowujemy flagę deleted
  */
 function mergeVacations(local, remote) {
     const merged = {};
@@ -484,21 +487,40 @@ function mergeVacations(local, remote) {
         const vacationMap = new Map();
 
         localVacations.forEach(v => {
-            vacationMap.set(v.id, v);
+            vacationMap.set(v.id, { ...v });
         });
 
         remoteVacations.forEach(v => {
             if (!vacationMap.has(v.id)) {
-                vacationMap.set(v.id, v);
+                vacationMap.set(v.id, { ...v });
+            } else {
+                // Urlop istnieje w obu źródłach - rozwiąż konflikt
+                const existing = vacationMap.get(v.id);
+
+                // Jeśli którykolwiek jest usunięty, zachowaj flagę deleted
+                // (priorytet dla usunięcia - raz usunięty = zawsze usunięty)
+                if (v.deleted || existing.deleted) {
+                    existing.deleted = true;
+                    // Zachowaj późniejszy deletedAt
+                    if (v.deletedAt && existing.deletedAt) {
+                        existing.deletedAt = v.deletedAt > existing.deletedAt ? v.deletedAt : existing.deletedAt;
+                    } else {
+                        existing.deletedAt = v.deletedAt || existing.deletedAt;
+                    }
+                }
             }
         });
 
-        // Konwertuj na tablicę i scal nachodzące
+        // Konwertuj na tablicę
         let playerVacations = Array.from(vacationMap.values());
 
-        // Scal nachodzące urlopy (używając funkcji z data.js jeśli dostępna)
+        // Scal nachodzące urlopy tylko dla nieusunietych
+        // (usunięte zachowujemy osobno dla synchronizacji)
+        const activeVacations = playerVacations.filter(v => !v.deleted);
+        const deletedVacations = playerVacations.filter(v => v.deleted);
+
         if (typeof mergeOverlappingVacations === 'function') {
-            playerVacations = mergeOverlappingVacations(playerVacations);
+            playerVacations = [...mergeOverlappingVacations(activeVacations), ...deletedVacations];
         }
 
         if (playerVacations.length > 0) {
@@ -512,27 +534,44 @@ function mergeVacations(local, remote) {
 /**
  * Scala dni wolne od pracy z dwóch źródeł
  * Strategia: union po ID, następnie scalanie nachodzących
+ * Uwzględnia soft delete - jeśli święto jest usunięte, zachowujemy flagę deleted
  */
 function mergeHolidays(local, remote) {
     // Połącz święta po ID (union bez duplikatów)
     const holidayMap = new Map();
 
     (local || []).forEach(h => {
-        holidayMap.set(h.id, h);
+        holidayMap.set(h.id, { ...h });
     });
 
     (remote || []).forEach(h => {
         if (!holidayMap.has(h.id)) {
-            holidayMap.set(h.id, h);
+            holidayMap.set(h.id, { ...h });
+        } else {
+            // Święto istnieje w obu źródłach - rozwiąż konflikt
+            const existing = holidayMap.get(h.id);
+
+            // Jeśli którykolwiek jest usunięty, zachowaj flagę deleted
+            if (h.deleted || existing.deleted) {
+                existing.deleted = true;
+                if (h.deletedAt && existing.deletedAt) {
+                    existing.deletedAt = h.deletedAt > existing.deletedAt ? h.deletedAt : existing.deletedAt;
+                } else {
+                    existing.deletedAt = h.deletedAt || existing.deletedAt;
+                }
+            }
         }
     });
 
     // Konwertuj na tablicę
     let holidays = Array.from(holidayMap.values());
 
-    // Scal nachodzące święta (używając funkcji z data.js jeśli dostępna)
+    // Scal nachodzące święta tylko dla nieusunietych
+    const activeHolidays = holidays.filter(h => !h.deleted);
+    const deletedHolidays = holidays.filter(h => h.deleted);
+
     if (typeof mergeOverlappingHolidays === 'function') {
-        holidays = mergeOverlappingHolidays(holidays);
+        holidays = [...mergeOverlappingHolidays(activeHolidays), ...deletedHolidays];
     }
 
     return holidays;

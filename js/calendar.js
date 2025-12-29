@@ -87,9 +87,18 @@ function renderCalendar() {
         const dayCell = document.createElement('div');
         dayCell.className = 'calendar-day';
 
+        // Sprawdź czy to weekend lub święto
+        const dateObj = new Date(currentYear, currentMonth, day);
+        const isDayOff = isWeekend(dateObj) || isDateHoliday(dateStr);
+
         // Oznacz dzisiejszy dzień
         if (dateStr === todayStr) {
             dayCell.classList.add('today');
+        }
+
+        // Oznacz dni wolne (weekendy i święta)
+        if (isDayOff) {
+            dayCell.classList.add('day-off');
         }
 
         // Numer dnia
@@ -98,21 +107,24 @@ function renderCalendar() {
         dayNumber.textContent = day;
         dayCell.appendChild(dayNumber);
 
-        // Dodaj paski urlopów
-        const vacationIndicators = document.createElement('div');
-        vacationIndicators.className = 'vacation-indicators';
+        // Dodaj paski urlopów tylko dla dni roboczych (nie weekendy/święta)
+        if (!isDayOff) {
+            const vacationIndicators = document.createElement('div');
+            vacationIndicators.className = 'vacation-indicators';
 
-        PLAYERS.forEach(playerName => {
-            if (isPlayerOnVacationOnDate(playerName, dateStr, vacationsThisMonth)) {
-                const indicator = document.createElement('div');
-                indicator.className = 'vacation-indicator';
-                indicator.style.backgroundColor = PLAYER_COLORS[playerName] || '#999';
-                indicator.title = `${playerName} - urlop`;
-                vacationIndicators.appendChild(indicator);
-            }
-        });
+            PLAYERS.forEach(playerName => {
+                if (isPlayerOnVacationOnDate(playerName, dateStr, vacationsThisMonth)) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'vacation-indicator';
+                    indicator.style.backgroundColor = PLAYER_COLORS[playerName] || '#999';
+                    indicator.title = `${playerName} - urlop`;
+                    vacationIndicators.appendChild(indicator);
+                }
+            });
 
-        dayCell.appendChild(vacationIndicators);
+            dayCell.appendChild(vacationIndicators);
+        }
+
         grid.appendChild(dayCell);
     }
 
@@ -137,6 +149,18 @@ function isPlayerOnVacationOnDate(playerName, dateStr, vacationsData) {
 
     return playerVacations.some(vacation => {
         return dateStr >= vacation.startDate && dateStr <= vacation.endDate;
+    });
+}
+
+/**
+ * Sprawdza czy dana data jest dniem wolnym od pracy (świętem)
+ * @param {string} dateStr - data w formacie YYYY-MM-DD
+ * @returns {boolean}
+ */
+function isDateHoliday(dateStr) {
+    const holidays = getHolidays();
+    return holidays.some(holiday => {
+        return dateStr >= holiday.startDate && dateStr <= holiday.endDate;
     });
 }
 
@@ -179,7 +203,10 @@ function renderMyVacations() {
     }
 
     myVacationsSection.style.display = 'block';
-    const vacations = getPlayerVacations(currentPlayer);
+    const allVacations = getPlayerVacations(currentPlayer);
+
+    // Filtruj urlopy - pokaż tylko osobiste (bez dni wolnych od pracy)
+    const vacations = allVacations.filter(v => !v.isHoliday);
 
     if (vacations.length === 0) {
         myVacationsList.innerHTML = '<p class="no-vacations">Nie masz zaplanowanych urlopów.</p>';

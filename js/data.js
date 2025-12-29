@@ -535,9 +535,19 @@ function getVacations() {
 }
 
 /**
- * Pobiera urlopy konkretnego gracza
+ * Pobiera urlopy konkretnego gracza (bez usuniętych)
  */
 function getPlayerVacations(playerName) {
+    const vacations = getVacations();
+    const playerVacations = vacations[playerName] || [];
+    // Filtruj usunięte urlopy (soft delete)
+    return playerVacations.filter(v => !v.deleted);
+}
+
+/**
+ * Pobiera wszystkie urlopy gracza (włącznie z usuniętymi) - do celów synchronizacji
+ */
+function getPlayerVacationsRaw(playerName) {
     const vacations = getVacations();
     return vacations[playerName] || [];
 }
@@ -552,7 +562,7 @@ function isPlayerOnVacation(playerName, date = new Date()) {
     const checkDate = typeof date === 'string' ? new Date(date) : date;
     const checkDateStr = checkDate.toISOString().split('T')[0];
 
-    const playerVacations = getPlayerVacations(playerName);
+    const playerVacations = getPlayerVacations(playerName); // już filtruje usunięte
 
     return playerVacations.some(vacation => {
         const startDate = vacation.startDate;
@@ -719,7 +729,7 @@ function addVacation(playerName, startDate, endDate) {
 }
 
 /**
- * Usuwa urlop gracza
+ * Usuwa urlop gracza (soft delete - oznacza jako usunięty)
  * Przywraca bonusy jeśli urlop obejmował dzisiejszy dzień
  * @param {string} playerName - nazwa gracza
  * @param {string} vacationId - ID urlopu do usunięcia
@@ -732,25 +742,27 @@ function removeVacation(playerName, vacationId) {
         return false;
     }
 
-    // Znajdź urlop przed usunięciem, żeby sprawdzić czy obejmuje dzisiaj
-    const vacationToRemove = data.vacations[playerName].find(v => v.id === vacationId);
-    const includesToday = vacationToRemove && dateRangeIncludesToday(vacationToRemove.startDate, vacationToRemove.endDate);
+    // Znajdź urlop do usunięcia
+    const vacationToRemove = data.vacations[playerName].find(v => v.id === vacationId && !v.deleted);
 
-    const initialLength = data.vacations[playerName].length;
-    data.vacations[playerName] = data.vacations[playerName].filter(v => v.id !== vacationId);
-
-    if (data.vacations[playerName].length < initialLength) {
-        saveData(data);
-
-        // Jeśli usunięty urlop obejmował dzisiaj, przywróć bonusy
-        if (includesToday) {
-            adjustBonusForTodayVacation(playerName, false);
-        }
-
-        return true;
+    if (!vacationToRemove) {
+        return false;
     }
 
-    return false;
+    const includesToday = dateRangeIncludesToday(vacationToRemove.startDate, vacationToRemove.endDate);
+
+    // Soft delete - oznacz jako usunięty zamiast fizycznie usuwać
+    vacationToRemove.deleted = true;
+    vacationToRemove.deletedAt = new Date().toISOString();
+
+    saveData(data);
+
+    // Jeśli usunięty urlop obejmował dzisiaj, przywróć bonusy
+    if (includesToday) {
+        adjustBonusForTodayVacation(playerName, false);
+    }
+
+    return true;
 }
 
 /**
@@ -916,16 +928,18 @@ function addHoliday(startDate, endDate) {
 }
 
 /**
- * Pobiera listę dni wolnych od pracy
+ * Pobiera listę dni wolnych od pracy (bez usuniętych)
  * @returns {Array} - tablica świąt
  */
 function getHolidays() {
     const data = getData();
-    return data.holidays || [];
+    const holidays = data.holidays || [];
+    // Filtruj usunięte święta (soft delete)
+    return holidays.filter(h => !h.deleted);
 }
 
 /**
- * Usuwa dzień wolny od pracy (i powiązane urlopy graczy)
+ * Usuwa dzień wolny od pracy (soft delete - oznacza jako usunięty)
  * Przywraca bonusy dla wszystkich graczy jeśli święto obejmowało dzisiaj
  * @param {string} holidayId - ID święta do usunięcia
  * @returns {boolean} - czy usunięto
@@ -937,27 +951,27 @@ function removeHoliday(holidayId) {
         return false;
     }
 
-    // Znajdź święto do usunięcia
-    const holidayIndex = data.holidays.findIndex(h => h.id === holidayId);
-    if (holidayIndex === -1) {
+    // Znajdź święto do usunięcia (nieusunięte)
+    const holiday = data.holidays.find(h => h.id === holidayId && !h.deleted);
+    if (!holiday) {
         return false;
     }
 
-    const holiday = data.holidays[holidayIndex];
     const includesToday = dateRangeIncludesToday(holiday.startDate, holiday.endDate);
 
-    // Usuń święto z listy
-    data.holidays.splice(holidayIndex, 1);
+    // Soft delete święta
+    holiday.deleted = true;
+    holiday.deletedAt = new Date().toISOString();
 
-    // Usuń powiązane urlopy graczy (te z flagą isHoliday w tym samym zakresie dat)
+    // Soft delete powiązanych urlopów graczy (te z flagą isHoliday w tym samym zakresie dat)
     PLAYERS.forEach(playerName => {
         if (data.vacations && data.vacations[playerName]) {
-            data.vacations[playerName] = data.vacations[playerName].filter(v => {
-                // Usuń jeśli to urlop świąteczny z dokładnie takim samym zakresem
-                if (v.isHoliday && v.startDate === holiday.startDate && v.endDate === holiday.endDate) {
-                    return false;
+            data.vacations[playerName].forEach(v => {
+                // Oznacz jako usunięty jeśli to urlop świąteczny z dokładnie takim samym zakresem
+                if (v.isHoliday && !v.deleted && v.startDate === holiday.startDate && v.endDate === holiday.endDate) {
+                    v.deleted = true;
+                    v.deletedAt = new Date().toISOString();
                 }
-                return true;
             });
         }
     });

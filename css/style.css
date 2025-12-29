@@ -1728,8 +1728,36 @@ footer {
 }
 
 .calendar-day.today {
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(243, 156, 18, 0.1));
-    border: 2px solid var(--accent);
+    background: linear-gradient(135deg, rgba(52, 73, 94, 0.25), rgba(52, 73, 94, 0.15));
+    border: 2px solid #34495e;
+}
+
+.calendar-day.today .day-number {
+    color: #34495e;
+    font-weight: bold;
+}
+
+/* Dni wolne od pracy (weekendy i święta) */
+.calendar-day.day-off {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.08), rgba(231, 76, 60, 0.04));
+}
+
+/* .calendar-day.day-off:hover { */
+/*     background: linear-gradient(135deg, rgba(231, 76, 60, 0.25), rgba(231, 76, 60, 0.15)); */
+/* } */
+
+.calendar-day.day-off .day-number {
+    color: #c0392b;
+}
+
+/* Dzień wolny który jest też dzisiejszy */
+.calendar-day.day-off.today {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.1));
+    border: 2px solid #c0392b;
+}
+
+.calendar-day.day-off.today .day-number {
+    color: #c0392b;
 }
 
 .day-number {
