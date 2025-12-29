@@ -278,6 +278,7 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
         players: {},
         purchases: [],
         vacations: {},
+        holidays: [],
         lastBonusCheck: null,
         history: {}
     };
@@ -435,6 +436,7 @@ function mergeAllData(local, remote) {
         players: {},
         purchases: mergePurchases(local.purchases || [], remote.purchases || []),
         vacations: mergeVacations(local.vacations || {}, remote.vacations || {}),
+        holidays: mergeHolidays(local.holidays || [], remote.holidays || []),
         lastBonusCheck: mergeNewerDate(local.lastBonusCheck, remote.lastBonusCheck),
         lastMonthWinnerCheck: mergeNewerString(local.lastMonthWinnerCheck, remote.lastMonthWinnerCheck),
         lastYearWinnerCheck: mergeNewerString(local.lastYearWinnerCheck, remote.lastYearWinnerCheck),
@@ -505,6 +507,35 @@ function mergeVacations(local, remote) {
     });
 
     return merged;
+}
+
+/**
+ * Scala dni wolne od pracy z dwóch źródeł
+ * Strategia: union po ID, następnie scalanie nachodzących
+ */
+function mergeHolidays(local, remote) {
+    // Połącz święta po ID (union bez duplikatów)
+    const holidayMap = new Map();
+
+    (local || []).forEach(h => {
+        holidayMap.set(h.id, h);
+    });
+
+    (remote || []).forEach(h => {
+        if (!holidayMap.has(h.id)) {
+            holidayMap.set(h.id, h);
+        }
+    });
+
+    // Konwertuj na tablicę
+    let holidays = Array.from(holidayMap.values());
+
+    // Scal nachodzące święta (używając funkcji z data.js jeśli dostępna)
+    if (typeof mergeOverlappingHolidays === 'function') {
+        holidays = mergeOverlappingHolidays(holidays);
+    }
+
+    return holidays;
 }
 
 /**

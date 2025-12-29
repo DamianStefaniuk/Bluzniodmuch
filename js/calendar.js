@@ -29,12 +29,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderLegend();
     setupCalendarEventListeners();
     setupVacationForm();
+    setupHolidayForm();
     updateSyncIndicator();
 
     if (isSyncConfigured()) {
         await performSync();
         renderCalendar();
         renderMyVacations();
+        renderHolidays();
     }
 });
 
@@ -233,7 +235,14 @@ async function deleteVacation(vacationId) {
         return;
     }
 
+    // Usuń urlop (automatycznie przywraca bonusy jeśli obejmował dzisiaj)
     removeVacation(currentPlayer, vacationId);
+
+    // Sprawdź osiągnięcia po korekcie bonusów
+    if (typeof checkAndShowNewAchievements === 'function') {
+        checkAndShowNewAchievements();
+    }
+
     renderCalendar();
 
     // Synchronizuj jeśli skonfigurowane
@@ -274,8 +283,13 @@ function setupVacationForm() {
             return;
         }
 
-        // Dodaj urlop
+        // Dodaj urlop (automatycznie koryguje bonusy jeśli obejmuje dzisiaj)
         addVacation(currentPlayer, startDate, endDate);
+
+        // Sprawdź osiągnięcia po korekcie bonusów
+        if (typeof checkAndShowNewAchievements === 'function') {
+            checkAndShowNewAchievements();
+        }
 
         // Wyczyść formularz
         form.reset();
@@ -377,4 +391,122 @@ function getTimeAgo(date) {
     if (diff < 3600) return `${Math.floor(diff / 60)} min temu`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} godz. temu`;
     return `${Math.floor(diff / 86400)} dni temu`;
+}
+
+// ============================================
+// FUNKCJE DNI WOLNYCH OD PRACY
+// ============================================
+
+/**
+ * Konfiguruje formularz dodawania dni wolnych od pracy
+ */
+function setupHolidayForm() {
+    const currentPlayer = getSelectedPlayer();
+    const holidaysSection = document.getElementById('holidaysSection');
+
+    // Pokaż sekcję tylko dla zalogowanych użytkowników
+    if (!currentPlayer) {
+        holidaysSection.style.display = 'none';
+        return;
+    }
+
+    holidaysSection.style.display = 'block';
+    renderHolidays();
+
+    const form = document.getElementById('holidayForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const startDate = document.getElementById('holidayStartDate').value;
+        const endDate = document.getElementById('holidayEndDate').value;
+
+        // Walidacja
+        if (!startDate || !endDate) {
+            alert('Wybierz obie daty');
+            return;
+        }
+
+        if (endDate < startDate) {
+            alert('Data końcowa musi być późniejsza lub równa dacie początkowej');
+            return;
+        }
+
+        // Dodaj dzień wolny dla wszystkich (automatycznie koryguje bonusy jeśli obejmuje dzisiaj)
+        addHoliday(startDate, endDate);
+
+        // Sprawdź osiągnięcia po korekcie bonusów
+        if (typeof checkAndShowNewAchievements === 'function') {
+            checkAndShowNewAchievements();
+        }
+
+        // Wyczyść formularz
+        form.reset();
+
+        // Odśwież widoki
+        renderCalendar();
+        renderHolidays();
+
+        // Synchronizuj jeśli skonfigurowane
+        if (isSyncConfigured()) {
+            await syncData();
+        }
+    });
+}
+
+/**
+ * Renderuje listę dni wolnych od pracy
+ */
+function renderHolidays() {
+    const holidaysList = document.getElementById('holidaysList');
+    const holidays = getHolidays();
+
+    if (holidays.length === 0) {
+        holidaysList.innerHTML = '<p class="no-vacations">Nie ma zaplanowanych dni wolnych od pracy.</p>';
+        return;
+    }
+
+    // Sortuj po dacie początkowej
+    const sortedHolidays = [...holidays].sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    holidaysList.innerHTML = sortedHolidays.map(holiday => {
+        const startDate = formatDatePL(holiday.startDate);
+        const endDate = formatDatePL(holiday.endDate);
+        const days = calculateDays(holiday.startDate, holiday.endDate);
+        const daysLabel = days === 1 ? 'dzień' : (days < 5 ? 'dni' : 'dni');
+
+        return `
+            <div class="vacation-item holiday-item">
+                <div class="vacation-dates">
+                    <span class="vacation-range">${startDate}${days > 1 ? ` - ${endDate}` : ''}</span>
+                    <span class="vacation-days">(${days} ${daysLabel})</span>
+                </div>
+                <button class="btn btn-danger btn-small" onclick="deleteHoliday('${holiday.id}')">Usuń</button>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Usuwa dzień wolny od pracy
+ */
+async function deleteHoliday(holidayId) {
+    if (!confirm('Czy na pewno chcesz usunąć ten dzień wolny od pracy? Urlopy zostaną usunięte dla wszystkich członków zespołu.')) {
+        return;
+    }
+
+    // Usuń święto (automatycznie przywraca bonusy jeśli obejmowało dzisiaj)
+    removeHoliday(holidayId);
+
+    // Sprawdź osiągnięcia po korekcie bonusów
+    if (typeof checkAndShowNewAchievements === 'function') {
+        checkAndShowNewAchievements();
+    }
+
+    renderCalendar();
+    renderHolidays();
+
+    // Synchronizuj jeśli skonfigurowane
+    if (isSyncConfigured()) {
+        await syncData();
+    }
 }

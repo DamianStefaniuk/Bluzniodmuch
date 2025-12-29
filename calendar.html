@@ -69,6 +69,28 @@
                 <div id="myVacationsList" class="vacations-list">
                 </div>
             </section>
+
+            <section class="holidays-section" id="holidaysSection" style="display: none;">
+                <h2>Dni Wolne od Pracy</h2>
+                <p class="vacation-info">Oznacz dni ustawowo wolne od pracy (święta). Urlop zostanie automatycznie dodany dla wszystkich członków zespołu.</p>
+
+                <form id="holidayForm" class="vacation-form">
+                    <div class="form-group">
+                        <label for="holidayStartDate">Data początkowa:</label>
+                        <input type="date" id="holidayStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="holidayEndDate">Data końcowa:</label>
+                        <input type="date" id="holidayEndDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Dodaj dzień wolny</button>
+                    </div>
+                </form>
+
+                <div id="holidaysList" class="vacations-list" style="margin-top: 1rem;">
+                </div>
+            </section>
         </main>
 
         <footer>

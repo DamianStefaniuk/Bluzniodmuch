@@ -97,10 +97,12 @@ function countWorkdaysBetween(startDate, endDate) {
 
 /**
  * Liczy dni robocze od daty do dziś (nie licząc daty początkowej, licząc dziś jeśli roboczy)
+ * Opcjonalnie uwzględnia urlopy gracza - dni urlopowe nie są liczone
  * @param {Date|string} fromDate - data początkowa
- * @returns {number} - liczba dni roboczych
+ * @param {string|null} playerName - opcjonalna nazwa gracza (aby wykluczyć dni urlopowe)
+ * @returns {number} - liczba dni roboczych (bez urlopów jeśli podano gracza)
  */
-function countWorkdaysSince(fromDate) {
+function countWorkdaysSince(fromDate, playerName = null) {
     const start = typeof fromDate === 'string' ? new Date(fromDate) : new Date(fromDate);
     start.setHours(0, 0, 0, 0);
 
@@ -113,8 +115,16 @@ function countWorkdaysSince(fromDate) {
 
     let count = 0;
     while (current <= now) {
+        // Sprawdź czy to dzień roboczy
         if (isWorkday(current)) {
-            count++;
+            // Jeśli podano gracza, sprawdź czy nie był na urlopie tego dnia
+            if (playerName) {
+                if (!isPlayerOnVacation(playerName, current)) {
+                    count++;
+                }
+            } else {
+                count++;
+            }
         }
         current.setDate(current.getDate() + 1);
     }
@@ -166,6 +176,8 @@ function initializeData() {
         const initialData = {
             players: {},
             purchases: [],
+            vacations: {},
+            holidays: [],
             lastBonusCheck: null,
             history: {},
             trackingStartDate: new Date().toISOString() // Data rozpoczęcia śledzenia
@@ -550,8 +562,123 @@ function isPlayerOnVacation(playerName, date = new Date()) {
 }
 
 /**
+ * Sprawdza czy zakres dat obejmuje dzisiejszy dzień
+ * @param {string} startDate - data początkowa (YYYY-MM-DD)
+ * @param {string} endDate - data końcowa (YYYY-MM-DD)
+ * @returns {boolean}
+ */
+function dateRangeIncludesToday(startDate, endDate) {
+    const today = new Date().toISOString().split('T')[0];
+    return today >= startDate && today <= endDate;
+}
+
+/**
+ * Koryguje bonusy gracza gdy urlop jest dodawany/usuwany na dzisiejszy dzień
+ * @param {string} playerName - nazwa gracza
+ * @param {boolean} isAddingVacation - true gdy dodajemy urlop, false gdy usuwamy
+ * @returns {object} - informacja o korekcie { corrected: boolean, bonusChange: number, weekBonusChange: number }
+ */
+function adjustBonusForTodayVacation(playerName, isAddingVacation) {
+    const data = getData();
+    const today = new Date().toISOString().split('T')[0];
+    const result = { corrected: false, bonusChange: 0, weekBonusChange: 0 };
+
+    // Sprawdź czy dzisiaj jest dniem roboczym
+    if (!isWorkday()) {
+        return result;
+    }
+
+    // Sprawdź czy bonusy były już naliczone dzisiaj
+    if (data.lastBonusCheck !== today) {
+        return result;
+    }
+
+    const playerData = data.players[playerName];
+    if (!playerData) {
+        return result;
+    }
+
+    // Data rozpoczęcia śledzenia
+    const trackingStartDate = data.trackingStartDate
+        ? new Date(data.trackingStartDate)
+        : new Date('2025-12-15T00:00:00.000Z');
+
+    // Data odniesienia dla bonusów
+    const referenceDate = playerData.lastActivity
+        ? new Date(playerData.lastActivity)
+        : trackingStartDate;
+
+    if (isAddingVacation) {
+        // DODAJEMY urlop na dziś - cofnij bonus jeśli był naliczony
+
+        // Sprawdź ile dni roboczych było przed dodaniem urlopu (bez dzisiejszego dnia)
+        // Dzisiaj był liczony jako dzień roboczy, ale teraz jest urlopem
+        const workdaysWithoutToday = countWorkdaysSince(referenceDate, playerName);
+        // Ponieważ urlop został już dodany, countWorkdaysSince pominie dzisiaj
+
+        const currentRewardedDays = playerData.rewardedInactiveDays || 0;
+
+        // Jeśli rewardedInactiveDays > workdaysWithoutToday, znaczy że dzisiaj był naliczony bonus
+        if (currentRewardedDays > workdaysWithoutToday) {
+            const daysToRemove = currentRewardedDays - workdaysWithoutToday;
+
+            // Cofnij bonus dzienny
+            playerData.bonusGained = (playerData.bonusGained || 0) - daysToRemove;
+            playerData.rewardedInactiveDays = workdaysWithoutToday;
+            result.bonusChange = -daysToRemove;
+            result.corrected = true;
+
+            // Sprawdź czy trzeba cofnąć bonus tygodniowy
+            const oldWeeks = Math.floor(currentRewardedDays / 5);
+            const newWeeks = Math.floor(workdaysWithoutToday / 5);
+            if (oldWeeks > newWeeks) {
+                const weeksToRemove = oldWeeks - newWeeks;
+                playerData.bonusGained = (playerData.bonusGained || 0) - (weeksToRemove * 5);
+                playerData.rewardedInactiveWeeks = newWeeks;
+                result.weekBonusChange = -weeksToRemove * 5;
+            }
+        }
+    } else {
+        // USUWAMY urlop na dziś - przywróć bonus
+
+        // Teraz urlop został usunięty, więc dzisiaj jest znowu dniem roboczym
+        const workdaysWithToday = countWorkdaysSince(referenceDate, playerName);
+
+        const currentRewardedDays = playerData.rewardedInactiveDays || 0;
+
+        // Jeśli workdaysWithToday > currentRewardedDays, trzeba dodać bonus za dzisiaj
+        if (workdaysWithToday > currentRewardedDays) {
+            const daysToAdd = workdaysWithToday - currentRewardedDays;
+
+            // Dodaj bonus dzienny
+            playerData.bonusGained = (playerData.bonusGained || 0) + daysToAdd;
+            playerData.rewardedInactiveDays = workdaysWithToday;
+            result.bonusChange = daysToAdd;
+            result.corrected = true;
+
+            // Sprawdź czy trzeba dodać bonus tygodniowy
+            const oldWeeks = Math.floor(currentRewardedDays / 5);
+            const newWeeks = Math.floor(workdaysWithToday / 5);
+            if (newWeeks > oldWeeks) {
+                const weeksToAdd = newWeeks - oldWeeks;
+                playerData.bonusGained = (playerData.bonusGained || 0) + (weeksToAdd * 5);
+                playerData.rewardedInactiveWeeks = newWeeks;
+                result.weekBonusChange = weeksToAdd * 5;
+            }
+        }
+    }
+
+    if (result.corrected) {
+        saveData(data);
+    }
+
+    return result;
+}
+
+/**
  * Dodaje urlop dla gracza
  * Automatycznie łączy nachodzące na siebie urlopy
+ * Koryguje bonusy jeśli urlop obejmuje dzisiejszy dzień
  * @param {string} playerName - nazwa gracza
  * @param {string} startDate - data początkowa (YYYY-MM-DD)
  * @param {string} endDate - data końcowa (YYYY-MM-DD)
@@ -583,11 +710,17 @@ function addVacation(playerName, startDate, endDate) {
 
     saveData(data);
 
+    // Jeśli urlop obejmuje dzisiaj, skoryguj bonusy
+    if (dateRangeIncludesToday(startDate, endDate)) {
+        adjustBonusForTodayVacation(playerName, true);
+    }
+
     return newVacation;
 }
 
 /**
  * Usuwa urlop gracza
+ * Przywraca bonusy jeśli urlop obejmował dzisiejszy dzień
  * @param {string} playerName - nazwa gracza
  * @param {string} vacationId - ID urlopu do usunięcia
  * @returns {boolean} - czy usunięto
@@ -599,11 +732,21 @@ function removeVacation(playerName, vacationId) {
         return false;
     }
 
+    // Znajdź urlop przed usunięciem, żeby sprawdzić czy obejmuje dzisiaj
+    const vacationToRemove = data.vacations[playerName].find(v => v.id === vacationId);
+    const includesToday = vacationToRemove && dateRangeIncludesToday(vacationToRemove.startDate, vacationToRemove.endDate);
+
     const initialLength = data.vacations[playerName].length;
     data.vacations[playerName] = data.vacations[playerName].filter(v => v.id !== vacationId);
 
     if (data.vacations[playerName].length < initialLength) {
         saveData(data);
+
+        // Jeśli usunięty urlop obejmował dzisiaj, przywróć bonusy
+        if (includesToday) {
+            adjustBonusForTodayVacation(playerName, false);
+        }
+
         return true;
     }
 
@@ -612,16 +755,39 @@ function removeVacation(playerName, vacationId) {
 
 /**
  * Scala nachodzące na siebie urlopy
+ * Urlopy świąteczne (isHoliday=true) nie są scalane z normalnymi urlopami
  * @param {Array} vacations - tablica urlopów
  * @returns {Array} - scalone urlopy
  */
 function mergeOverlappingVacations(vacations) {
     if (vacations.length <= 1) return vacations;
 
+    // Rozdziel urlopy świąteczne i normalne
+    const holidayVacations = vacations.filter(v => v.isHoliday);
+    const normalVacations = vacations.filter(v => !v.isHoliday);
+
+    // Scal tylko normalne urlopy
+    const mergedNormal = mergeVacationArray(normalVacations);
+
+    // Scal święta osobno (między sobą)
+    const mergedHolidays = mergeVacationArray(holidayVacations);
+
+    // Połącz wyniki
+    return [...mergedNormal, ...mergedHolidays];
+}
+
+/**
+ * Pomocnicza funkcja do scalania tablicy urlopów
+ * @param {Array} vacations - tablica urlopów do scalenia
+ * @returns {Array} - scalone urlopy
+ */
+function mergeVacationArray(vacations) {
+    if (vacations.length <= 1) return vacations;
+
     // Sortuj po dacie początkowej
     const sorted = [...vacations].sort((a, b) => a.startDate.localeCompare(b.startDate));
 
-    const merged = [sorted[0]];
+    const merged = [{ ...sorted[0] }]; // Kopiuj obiekt aby nie modyfikować oryginału
 
     for (let i = 1; i < sorted.length; i++) {
         const current = sorted[i];
@@ -638,10 +804,13 @@ function mergeOverlappingVacations(vacations) {
             if (current.endDate > last.endDate) {
                 last.endDate = current.endDate;
             }
-            // Zachowaj najstarszy ID
+            // Zachowaj flagę isHoliday jeśli którykolwiek ją ma
+            if (current.isHoliday) {
+                last.isHoliday = true;
+            }
         } else {
             // Nie nachodzą - dodaj jako osobny
-            merged.push(current);
+            merged.push({ ...current });
         }
     }
 
@@ -677,4 +846,166 @@ function getVacationsForMonth(year, month) {
     });
 
     return result;
+}
+
+// ============================================
+// FUNKCJE DNI WOLNYCH OD PRACY (ŚWIĘTA)
+// ============================================
+
+/**
+ * Dodaje dzień wolny od pracy (urlop dla wszystkich graczy)
+ * Koryguje bonusy dla wszystkich graczy jeśli święto obejmuje dzisiaj
+ * @param {string} startDate - data początkowa (YYYY-MM-DD)
+ * @param {string} endDate - data końcowa (YYYY-MM-DD)
+ * @returns {object} - informacja o dodanych urlopach
+ */
+function addHoliday(startDate, endDate) {
+    const data = getData();
+
+    if (!data.vacations) {
+        data.vacations = {};
+    }
+
+    // Zapisz informację o dniu wolnym (dla historii/wyświetlania)
+    if (!data.holidays) {
+        data.holidays = [];
+    }
+
+    const holidayId = generateId();
+    const holiday = {
+        id: holidayId,
+        startDate: startDate,
+        endDate: endDate,
+        createdAt: new Date().toISOString()
+    };
+    data.holidays.push(holiday);
+
+    // Scal nachodzące święta
+    data.holidays = mergeOverlappingHolidays(data.holidays);
+
+    // Dodaj urlop dla każdego gracza
+    PLAYERS.forEach(playerName => {
+        if (!data.vacations[playerName]) {
+            data.vacations[playerName] = [];
+        }
+
+        const newVacation = {
+            id: generateId(),
+            startDate: startDate,
+            endDate: endDate,
+            createdAt: new Date().toISOString(),
+            isHoliday: true // Oznacz jako dzień wolny od pracy
+        };
+
+        data.vacations[playerName].push(newVacation);
+
+        // Scal nachodzące urlopy dla gracza
+        data.vacations[playerName] = mergeOverlappingVacations(data.vacations[playerName]);
+    });
+
+    saveData(data);
+
+    // Jeśli święto obejmuje dzisiaj, skoryguj bonusy dla wszystkich graczy
+    if (dateRangeIncludesToday(startDate, endDate)) {
+        PLAYERS.forEach(playerName => {
+            adjustBonusForTodayVacation(playerName, true);
+        });
+    }
+
+    return holiday;
+}
+
+/**
+ * Pobiera listę dni wolnych od pracy
+ * @returns {Array} - tablica świąt
+ */
+function getHolidays() {
+    const data = getData();
+    return data.holidays || [];
+}
+
+/**
+ * Usuwa dzień wolny od pracy (i powiązane urlopy graczy)
+ * Przywraca bonusy dla wszystkich graczy jeśli święto obejmowało dzisiaj
+ * @param {string} holidayId - ID święta do usunięcia
+ * @returns {boolean} - czy usunięto
+ */
+function removeHoliday(holidayId) {
+    const data = getData();
+
+    if (!data.holidays) {
+        return false;
+    }
+
+    // Znajdź święto do usunięcia
+    const holidayIndex = data.holidays.findIndex(h => h.id === holidayId);
+    if (holidayIndex === -1) {
+        return false;
+    }
+
+    const holiday = data.holidays[holidayIndex];
+    const includesToday = dateRangeIncludesToday(holiday.startDate, holiday.endDate);
+
+    // Usuń święto z listy
+    data.holidays.splice(holidayIndex, 1);
+
+    // Usuń powiązane urlopy graczy (te z flagą isHoliday w tym samym zakresie dat)
+    PLAYERS.forEach(playerName => {
+        if (data.vacations && data.vacations[playerName]) {
+            data.vacations[playerName] = data.vacations[playerName].filter(v => {
+                // Usuń jeśli to urlop świąteczny z dokładnie takim samym zakresem
+                if (v.isHoliday && v.startDate === holiday.startDate && v.endDate === holiday.endDate) {
+                    return false;
+                }
+                return true;
+            });
+        }
+    });
+
+    saveData(data);
+
+    // Jeśli usunięte święto obejmowało dzisiaj, przywróć bonusy dla wszystkich graczy
+    if (includesToday) {
+        PLAYERS.forEach(playerName => {
+            adjustBonusForTodayVacation(playerName, false);
+        });
+    }
+
+    return true;
+}
+
+/**
+ * Scala nachodzące na siebie święta
+ * @param {Array} holidays - tablica świąt
+ * @returns {Array} - scalone święta
+ */
+function mergeOverlappingHolidays(holidays) {
+    if (holidays.length <= 1) return holidays;
+
+    // Sortuj po dacie początkowej
+    const sorted = [...holidays].sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    const merged = [sorted[0]];
+
+    for (let i = 1; i < sorted.length; i++) {
+        const current = sorted[i];
+        const last = merged[merged.length - 1];
+
+        // Sprawdź czy święta nachodzą na siebie lub są przyległe
+        const lastEndPlusOne = new Date(last.endDate);
+        lastEndPlusOne.setDate(lastEndPlusOne.getDate() + 1);
+        const lastEndPlusOneStr = lastEndPlusOne.toISOString().split('T')[0];
+
+        if (current.startDate <= lastEndPlusOneStr) {
+            // Scal - weź późniejszą datę końcową
+            if (current.endDate > last.endDate) {
+                last.endDate = current.endDate;
+            }
+        } else {
+            // Nie nachodzą - dodaj jako osobne
+            merged.push(current);
+        }
+    }
+
+    return merged;
 }

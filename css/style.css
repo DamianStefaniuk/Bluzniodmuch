@@ -1795,6 +1795,15 @@ footer {
     border-radius: 10px;
 }
 
+.vacation-item.holiday-item {
+    background: linear-gradient(135deg, var(--background) 0%, rgba(231, 76, 60, 0.1) 100%);
+    border-left: 3px solid var(--danger);
+}
+
+.holidays-section {
+    background: var(--card-bg);
+}
+
 .vacation-dates {
     display: flex;
     flex-direction: column;

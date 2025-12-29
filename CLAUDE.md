@@ -85,7 +85,7 @@ The application only tracks activity on workdays (Monday-Friday). On weekends:
 Key functions in `data.js`:
 - `isWorkday(date?)` - checks if date is Mon-Fri
 - `isWeekend(date?)` - checks if date is Sat-Sun
-- `countWorkdaysSince(fromDate)` - counts workdays since a date
+- `countWorkdaysSince(fromDate, playerName?)` - counts workdays since a date (excludes vacation days if playerName provided)
 - `countWorkdaysBetween(start, end)` - counts workdays in range
 
 Bonus calculation:
@@ -114,6 +114,25 @@ Key functions in `data.js`:
 - `isPlayerOnVacation(playerName, date?)` - checks if player is on vacation
 - `addVacation(playerName, startDate, endDate)` - adds vacation (auto-merges overlapping)
 - `removeVacation(playerName, vacationId)` - removes vacation
+
+### Holiday System (Dni Wolne od Pracy)
+
+Holidays are company-wide days off that automatically create vacations for all players. Used for statutory holidays when no one is working.
+
+**Holiday data** (in `data.holidays`):
+```javascript
+[{
+    id: "uniqueId",
+    startDate: "YYYY-MM-DD",
+    endDate: "YYYY-MM-DD",
+    createdAt: "ISO date"
+}]
+```
+
+Key functions in `data.js`:
+- `addHoliday(startDate, endDate)` - adds holiday for all players (creates vacation for each)
+- `getHolidays()` - returns list of holidays
+- `removeHoliday(holidayId)` - removes holiday and associated vacations for all players
 
 ## Pages
 

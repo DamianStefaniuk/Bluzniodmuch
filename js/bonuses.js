@@ -245,7 +245,8 @@ function applyInactivityBonuses() {
             : trackingStartDate;
 
         // Oblicz DNI ROBOCZE nieaktywności (od ostatniego przekleństwa lub od początku śledzenia)
-        const workdaysSinceActivity = countWorkdaysSince(referenceDate);
+        // Uwzględniamy urlopy gracza - dni urlopowe nie są liczone jako aktywne dni robocze
+        const workdaysSinceActivity = countWorkdaysSince(referenceDate, player);
 
         // Bonus za dni robocze bez przekleństw (+1 punkt za dzień roboczy)
         if (workdaysSinceActivity > 0) {
