@@ -96,7 +96,9 @@ function countWorkdaysBetween(startDate, endDate) {
 }
 
 /**
- * Liczy dni robocze od daty do dziś (nie licząc daty początkowej, licząc dziś jeśli roboczy)
+ * Liczy dni robocze od daty do wczoraj (nie licząc daty początkowej ani dzisiejszego dnia)
+ * Dzisiejszy dzień NIE jest liczony, bo jeszcze nie wiemy czy gracz przeklnie
+ * Bonus za dzień X jest przyznawany dopiero w dniu X+1
  * Opcjonalnie uwzględnia urlopy gracza - dni urlopowe nie są liczone
  * @param {Date|string} fromDate - data początkowa
  * @param {string|null} playerName - opcjonalna nazwa gracza (aby wykluczyć dni urlopowe)
@@ -114,7 +116,9 @@ function countWorkdaysSince(fromDate, playerName = null) {
     current.setDate(current.getDate() + 1);
 
     let count = 0;
-    while (current <= now) {
+    // Liczymy tylko dni PRZED dzisiejszym (current < now, nie current <= now)
+    // Dzisiejszy dzień nie jest liczony, bo jeszcze się nie skończył
+    while (current < now) {
         // Sprawdź czy to dzień roboczy
         if (isWorkday(current)) {
             // Jeśli podano gracza, sprawdź czy nie był na urlopie tego dnia
@@ -583,106 +587,24 @@ function dateRangeIncludesToday(startDate, endDate) {
 }
 
 /**
- * Koryguje bonusy gracza gdy urlop jest dodawany/usuwany na dzisiejszy dzień
+ * Koryguje bonusy gracza gdy urlop jest dodawany/usuwany
+ *
+ * UWAGA: Z nową logiką bonusów (dzisiejszy dzień NIE jest liczony do bonusu),
+ * korekta dla urlopu na "dziś" nie jest potrzebna - bonus za dzisiaj
+ * jest przyznawany dopiero JUTRO, więc dodanie/usunięcie urlopu na dziś
+ * automatycznie wpłynie na jutrzejsze obliczenia.
+ *
+ * Funkcja pozostawiona dla kompatybilności - obecnie nie wykonuje korekt.
+ *
  * @param {string} playerName - nazwa gracza
  * @param {boolean} isAddingVacation - true gdy dodajemy urlop, false gdy usuwamy
  * @returns {object} - informacja o korekcie { corrected: boolean, bonusChange: number, weekBonusChange: number }
  */
 function adjustBonusForTodayVacation(playerName, isAddingVacation) {
-    const data = getData();
-    const today = new Date().toISOString().split('T')[0];
-    const result = { corrected: false, bonusChange: 0, weekBonusChange: 0 };
-
-    // Sprawdź czy dzisiaj jest dniem roboczym
-    if (!isWorkday()) {
-        return result;
-    }
-
-    // Sprawdź czy bonusy były już naliczone dzisiaj
-    if (data.lastBonusCheck !== today) {
-        return result;
-    }
-
-    const playerData = data.players[playerName];
-    if (!playerData) {
-        return result;
-    }
-
-    // Data rozpoczęcia śledzenia
-    const trackingStartDate = data.trackingStartDate
-        ? new Date(data.trackingStartDate)
-        : new Date('2025-12-15T00:00:00.000Z');
-
-    // Data odniesienia dla bonusów
-    const referenceDate = playerData.lastActivity
-        ? new Date(playerData.lastActivity)
-        : trackingStartDate;
-
-    if (isAddingVacation) {
-        // DODAJEMY urlop na dziś - cofnij bonus jeśli był naliczony
-
-        // Sprawdź ile dni roboczych było przed dodaniem urlopu (bez dzisiejszego dnia)
-        // Dzisiaj był liczony jako dzień roboczy, ale teraz jest urlopem
-        const workdaysWithoutToday = countWorkdaysSince(referenceDate, playerName);
-        // Ponieważ urlop został już dodany, countWorkdaysSince pominie dzisiaj
-
-        const currentRewardedDays = playerData.rewardedInactiveDays || 0;
-
-        // Jeśli rewardedInactiveDays > workdaysWithoutToday, znaczy że dzisiaj był naliczony bonus
-        if (currentRewardedDays > workdaysWithoutToday) {
-            const daysToRemove = currentRewardedDays - workdaysWithoutToday;
-
-            // Cofnij bonus dzienny
-            playerData.bonusGained = (playerData.bonusGained || 0) - daysToRemove;
-            playerData.rewardedInactiveDays = workdaysWithoutToday;
-            result.bonusChange = -daysToRemove;
-            result.corrected = true;
-
-            // Sprawdź czy trzeba cofnąć bonus tygodniowy
-            const oldWeeks = Math.floor(currentRewardedDays / 5);
-            const newWeeks = Math.floor(workdaysWithoutToday / 5);
-            if (oldWeeks > newWeeks) {
-                const weeksToRemove = oldWeeks - newWeeks;
-                playerData.bonusGained = (playerData.bonusGained || 0) - (weeksToRemove * 5);
-                playerData.rewardedInactiveWeeks = newWeeks;
-                result.weekBonusChange = -weeksToRemove * 5;
-            }
-        }
-    } else {
-        // USUWAMY urlop na dziś - przywróć bonus
-
-        // Teraz urlop został usunięty, więc dzisiaj jest znowu dniem roboczym
-        const workdaysWithToday = countWorkdaysSince(referenceDate, playerName);
-
-        const currentRewardedDays = playerData.rewardedInactiveDays || 0;
-
-        // Jeśli workdaysWithToday > currentRewardedDays, trzeba dodać bonus za dzisiaj
-        if (workdaysWithToday > currentRewardedDays) {
-            const daysToAdd = workdaysWithToday - currentRewardedDays;
-
-            // Dodaj bonus dzienny
-            playerData.bonusGained = (playerData.bonusGained || 0) + daysToAdd;
-            playerData.rewardedInactiveDays = workdaysWithToday;
-            result.bonusChange = daysToAdd;
-            result.corrected = true;
-
-            // Sprawdź czy trzeba dodać bonus tygodniowy
-            const oldWeeks = Math.floor(currentRewardedDays / 5);
-            const newWeeks = Math.floor(workdaysWithToday / 5);
-            if (newWeeks > oldWeeks) {
-                const weeksToAdd = newWeeks - oldWeeks;
-                playerData.bonusGained = (playerData.bonusGained || 0) + (weeksToAdd * 5);
-                playerData.rewardedInactiveWeeks = newWeeks;
-                result.weekBonusChange = weeksToAdd * 5;
-            }
-        }
-    }
-
-    if (result.corrected) {
-        saveData(data);
-    }
-
-    return result;
+    // Z nową logiką bonusów dzisiejszy dzień NIE jest liczony (current < now),
+    // więc korekta nie jest potrzebna - jutrzejsze obliczenia automatycznie
+    // uwzględnią urlop (lub jego brak) na dzień dzisiejszy.
+    return { corrected: false, bonusChange: 0, weekBonusChange: 0 };
 }
 
 /**
