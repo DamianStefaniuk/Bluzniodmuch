@@ -847,9 +847,9 @@ function getVacationsForMonth(year, month) {
     Object.keys(vacations).forEach(playerName => {
         const playerVacations = vacations[playerName] || [];
 
-        // Filtruj urlopy które nachodzą na dany miesiąc
+        // Filtruj urlopy które nachodzą na dany miesiąc (bez usuniętych)
         const relevantVacations = playerVacations.filter(v => {
-            return v.endDate >= monthStartStr && v.startDate <= monthEndStr;
+            return !v.deleted && v.endDate >= monthStartStr && v.startDate <= monthEndStr;
         });
 
         if (relevantVacations.length > 0) {
