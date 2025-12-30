@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupCalendarEventListeners();
     setupVacationForm();
     setupHolidayForm();
+    setupMeetingForm();
     updateSyncIndicator();
 
     if (isSyncConfigured()) {
@@ -37,7 +38,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCalendar();
         renderMyVacations();
         renderHolidays();
+        renderMeetings();
     }
+
+    // Sprawdź czy dzisiaj jest dzień spotkania i pokaż animację
+    checkAndShowMeetingAnimation();
 });
 
 /**
@@ -106,6 +111,16 @@ function renderCalendar() {
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
         dayCell.appendChild(dayNumber);
+
+        // Dodaj ikonę piwa jeśli jest spotkanie
+        if (isMeetingDay(dateStr)) {
+            const meetingIcon = document.createElement('span');
+            meetingIcon.className = 'meeting-icon';
+            meetingIcon.textContent = '🍺';
+            meetingIcon.title = 'Spotkanie!';
+            dayCell.appendChild(meetingIcon);
+            dayCell.classList.add('meeting-day');
+        }
 
         // Dodaj paski urlopów tylko dla dni roboczych (nie weekendy/święta)
         if (!isDayOff) {
@@ -536,4 +551,162 @@ async function deleteHoliday(holidayId) {
     if (isSyncConfigured()) {
         await syncData();
     }
+}
+
+// ============================================
+// FUNKCJE SPOTKAŃ (MEETINGS)
+// ============================================
+
+/**
+ * Konfiguruje formularz dodawania spotkań
+ */
+function setupMeetingForm() {
+    const currentPlayer = getSelectedPlayer();
+    const meetingsSection = document.getElementById('meetingsSection');
+
+    // Pokaż sekcję tylko dla zalogowanych użytkowników
+    if (!currentPlayer) {
+        if (meetingsSection) meetingsSection.style.display = 'none';
+        return;
+    }
+
+    if (meetingsSection) {
+        meetingsSection.style.display = 'block';
+        renderMeetings();
+
+        const form = document.getElementById('meetingForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const meetingDate = document.getElementById('meetingDate').value;
+
+                // Walidacja
+                if (!meetingDate) {
+                    alert('Wybierz datę spotkania');
+                    return;
+                }
+
+                // Dodaj spotkanie
+                addMeeting(meetingDate);
+
+                // Wyczyść formularz
+                form.reset();
+
+                // Odśwież widoki
+                renderCalendar();
+                renderMeetings();
+
+                // Synchronizuj jeśli skonfigurowane
+                if (isSyncConfigured()) {
+                    await syncData();
+                }
+            });
+        }
+    }
+}
+
+/**
+ * Renderuje listę spotkań
+ */
+function renderMeetings() {
+    const meetingsList = document.getElementById('meetingsList');
+    if (!meetingsList) return;
+
+    const meetings = getMeetings();
+
+    if (meetings.length === 0) {
+        meetingsList.innerHTML = '<p class="no-vacations">Nie ma zaplanowanych spotkań.</p>';
+        return;
+    }
+
+    // Sortuj po dacie
+    const sortedMeetings = [...meetings].sort((a, b) => a.date.localeCompare(b.date));
+
+    meetingsList.innerHTML = sortedMeetings.map(meeting => {
+        const dateFormatted = formatDatePL(meeting.date);
+        const isToday = meeting.date === toLocalDateString(new Date());
+
+        return `
+            <div class="vacation-item meeting-item ${isToday ? 'meeting-today' : ''}">
+                <div class="vacation-dates">
+                    <span class="meeting-icon-small">🍺</span>
+                    <span class="vacation-range">${dateFormatted}</span>
+                    ${isToday ? '<span class="meeting-today-badge">Dzisiaj!</span>' : ''}
+                </div>
+                <button class="btn btn-danger btn-small" onclick="deleteMeeting('${meeting.id}')">Usuń</button>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Usuwa spotkanie
+ */
+async function deleteMeeting(meetingId) {
+    if (!confirm('Czy na pewno chcesz usunąć to spotkanie?')) {
+        return;
+    }
+
+    removeMeeting(meetingId);
+
+    renderCalendar();
+    renderMeetings();
+
+    // Synchronizuj jeśli skonfigurowane
+    if (isSyncConfigured()) {
+        await syncData();
+    }
+}
+
+/**
+ * Sprawdza czy dzisiaj jest spotkanie i pokazuje animację
+ */
+function checkAndShowMeetingAnimation() {
+    if (isTodayMeetingDay()) {
+        showMeetingAnimation();
+    }
+}
+
+/**
+ * Wyświetla animację zderzenia szklanek piwa
+ */
+function showMeetingAnimation() {
+    // Sprawdź czy animacja była już pokazana dzisiaj
+    const today = toLocalDateString(new Date());
+    const lastShown = localStorage.getItem('bluzniodmuch_meeting_animation_shown');
+
+    if (lastShown === today) {
+        return; // Nie pokazuj ponownie tego samego dnia
+    }
+
+    // Utwórz overlay z animacją
+    const overlay = document.createElement('div');
+    overlay.className = 'meeting-animation-overlay';
+    overlay.innerHTML = `
+        <div class="meeting-animation-content">
+            <div class="beer-glasses">
+                <span class="beer-glass beer-left">🍺</span>
+                <span class="beer-glass beer-right">🍺</span>
+            </div>
+            <h2 class="meeting-text">Meeting Today!</h2>
+            <p class="meeting-subtext">Czas na integrację!</p>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Zapisz że animacja była pokazana
+    localStorage.setItem('bluzniodmuch_meeting_animation_shown', today);
+
+    // Usuń overlay po kliknięciu lub po 4 sekundach
+    const removeOverlay = () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => {
+            overlay.remove();
+        }, 500);
+    };
+
+    overlay.addEventListener('click', removeOverlay);
+    setTimeout(removeOverlay, 4000);
 }
