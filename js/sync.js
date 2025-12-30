@@ -600,6 +600,10 @@ function mergePlayerData(local, remote) {
     if (!remote) return local || createEmptyPlayer();
     if (!local) return remote;
 
+    // Najpierw ustal które źródło ma nowsze lastActivity (późniejsze przekleństwo)
+    const mergedLastActivity = mergeNewerDate(local.lastActivity, remote.lastActivity);
+    const localActivityNewer = mergedLastActivity === local.lastActivity && local.lastActivity !== null;
+
     return {
         // Składniki bilansu - bierzemy większą wartość (więcej = więcej akcji wykonanych)
         swearCount: Math.max(local.swearCount || 0, remote.swearCount || 0),
@@ -611,12 +615,17 @@ function mergePlayerData(local, remote) {
         monthly: mergeCounters(local.monthly || {}, remote.monthly || {}),
         yearly: mergeCounters(local.yearly || {}, remote.yearly || {}),
 
-        // Pola związane z bonusami - bierzemy wartości które wskazują na więcej naliczonych bonusów
-        rewardedInactiveDays: Math.max(local.rewardedInactiveDays || 0, remote.rewardedInactiveDays || 0),
-        rewardedInactiveWeeks: Math.max(local.rewardedInactiveWeeks || 0, remote.rewardedInactiveWeeks || 0),
+        // Pola związane z bonusami - bierzemy wartości z tego samego źródła co lastActivity
+        // (bo rewardedInactiveDays jest resetowane do 0 przy przekleństwie)
+        rewardedInactiveDays: localActivityNewer
+            ? (local.rewardedInactiveDays || 0)
+            : (remote.rewardedInactiveDays || 0),
+        rewardedInactiveWeeks: localActivityNewer
+            ? (local.rewardedInactiveWeeks || 0)
+            : (remote.rewardedInactiveWeeks || 0),
 
         // Data ostatniej aktywności - bierzemy nowszą (późniejsze przekleństwo)
-        lastActivity: mergeNewerDate(local.lastActivity, remote.lastActivity),
+        lastActivity: mergedLastActivity,
 
         // Ostatni sprawdzony miesiąc dla bonusu - bierzemy nowszy
         lastMonthBonusCheck: mergeNewerString(local.lastMonthBonusCheck, remote.lastMonthBonusCheck),
