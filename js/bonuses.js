@@ -189,6 +189,12 @@ function checkYearWinner(data) {
  * - Miesiąc bez przekleństwa (wszystkie dni robocze) = +10 punktów
  */
 function applyInactivityBonuses() {
+    // ZAWSZE najpierw skoryguj bonusy na podstawie aktualnych urlopów
+    // (urlopy mogły być dodane/usunięte od ostatniego sprawdzenia)
+    if (typeof recalculateAllPlayersBonuses === 'function') {
+        recalculateAllPlayersBonuses();
+    }
+
     const data = getData();
     const today = new Date().toISOString().split('T')[0];
     const lastBonusCheck = data.lastBonusCheck || null;

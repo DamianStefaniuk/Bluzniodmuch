@@ -601,8 +601,12 @@ function recalculateAllPlayersBonuses() {
 }
 
 /**
- * Przelicza bonusy gracza od nowa na podstawie aktualnych urlopów
+ * Koryguje bonusy gracza na podstawie aktualnych urlopów
  * Używane po dodaniu/usunięciu urlopu (szczególnie wstecznego)
+ *
+ * WAŻNE: Nie resetuje całkowitego bonusGained, tylko koryguje różnicę!
+ * Gracz mógł wcześniej zdobyć bonusy, potem przekląć, i znowu zdobywać -
+ * te historyczne bonusy są zachowane.
  *
  * @param {string} playerName - nazwa gracza
  * @returns {object} - informacja o korekcie { oldBonus, newBonus, difference }
@@ -626,36 +630,38 @@ function recalculateBonusesForPlayer(playerName) {
         : trackingStartDate;
 
     // Przelicz dni robocze (bez urlopów) od referencji do wczoraj
-    const workdaysSinceActivity = countWorkdaysSince(referenceDate, playerName);
+    const newDays = countWorkdaysSince(referenceDate, playerName);
 
-    // Bonus za dni (+1 za każdy dzień roboczy)
-    const dailyBonus = workdaysSinceActivity;
+    // Oblicz nowe tygodnie
+    const newWeeks = Math.floor(newDays / 5);
 
-    // Bonus za pełne tygodnie (+5 za każdy pełny tydzień = 5 dni roboczych)
-    const fullWorkWeeks = Math.floor(workdaysSinceActivity / 5);
-    const weeklyBonus = fullWorkWeeks * 5;
+    // Oblicz różnicę w dniach i tygodniach
+    // Może być ujemna (gdy dodano urlop wsteczny) lub dodatnia (gdy usunięto urlop)
+    const daysDiff = newDays - oldDays;
+    const weeksDiff = newWeeks - oldWeeks;
 
-    // Bonus za czyste miesiące (+10 za każdy) - zachowujemy istniejące
-    const monthlyBonus = (playerData.cleanMonths || []).length * 10;
-
-    // Oblicz nowy całkowity bonus
-    const newBonus = dailyBonus + weeklyBonus + monthlyBonus;
+    // Skoryguj bonusGained o różnicę
+    // +1 za każdy dzień różnicy, +5 za każdy tydzień różnicy
+    const bonusCorrection = daysDiff + (weeksDiff * 5);
+    const newBonus = oldBonus + bonusCorrection;
 
     // Aktualizuj dane gracza
     playerData.bonusGained = newBonus;
-    playerData.rewardedInactiveDays = workdaysSinceActivity;
-    playerData.rewardedInactiveWeeks = fullWorkWeeks;
+    playerData.rewardedInactiveDays = newDays;
+    playerData.rewardedInactiveWeeks = newWeeks;
 
     saveData(data);
 
     return {
         oldBonus,
         newBonus,
-        difference: newBonus - oldBonus,
-        dailyBonus,
-        weeklyBonus,
-        monthlyBonus,
-        workdays: workdaysSinceActivity
+        difference: bonusCorrection,
+        oldDays,
+        newDays,
+        daysDiff,
+        oldWeeks,
+        newWeeks,
+        weeksDiff
     };
 }
 
