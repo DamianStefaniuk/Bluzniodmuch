@@ -196,7 +196,7 @@ function applyInactivityBonuses() {
     }
 
     const data = getData();
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateString(new Date());
     const lastBonusCheck = data.lastBonusCheck || null;
 
     // Jeśli już sprawdzono dzisiaj, tylko sprawdź osiągnięcia i zakończ

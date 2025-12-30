@@ -763,7 +763,8 @@ function removeAchievementsOnVacationDays(playerName) {
         }
 
         const awardDate = new Date(achievement.date);
-        const awardDateStr = awardDate.toISOString().split('T')[0];
+        // Użyj lokalnej daty - to pasuje do formatu dat urlopów (YYYY-MM-DD lokalne)
+        const awardDateStr = toLocalDateString(awardDate);
 
         // Sprawdź czy osiągnięcie zostało przyznane w dzień urlopowy
         if (isPlayerOnVacation(playerName, awardDateStr)) {

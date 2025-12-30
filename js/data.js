@@ -48,6 +48,19 @@ function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
+/**
+ * Konwertuje obiekt Date na string w formacie YYYY-MM-DD używając LOKALNEJ daty
+ * (NIE używaj toISOString() bo zwraca UTC i może przesunąć dzień!)
+ * @param {Date} date - data do konwersji
+ * @returns {string} - data w formacie YYYY-MM-DD
+ */
+function toLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // ============================================
 // FUNKCJE DNI ROBOCZYCH
 // ============================================
@@ -564,7 +577,7 @@ function getPlayerVacationsRaw(playerName) {
  */
 function isPlayerOnVacation(playerName, date = new Date()) {
     const checkDate = typeof date === 'string' ? new Date(date) : date;
-    const checkDateStr = checkDate.toISOString().split('T')[0];
+    const checkDateStr = toLocalDateString(checkDate);
 
     const playerVacations = getPlayerVacations(playerName); // już filtruje usunięte
 
@@ -582,7 +595,7 @@ function isPlayerOnVacation(playerName, date = new Date()) {
  * @returns {boolean}
  */
 function dateRangeIncludesToday(startDate, endDate) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateString(new Date());
     return today >= startDate && today <= endDate;
 }
 
@@ -807,9 +820,10 @@ function mergeVacationArray(vacations) {
 
         // Sprawdź czy urlopy nachodzą na siebie lub są przyległe
         // Dodajemy 1 dzień do last.endDate aby sprawdzić przyległość
-        const lastEndPlusOne = new Date(last.endDate);
+        // Parsuj datę jako lokalną (dodaj T12:00 żeby uniknąć problemów z strefą czasową)
+        const lastEndPlusOne = new Date(last.endDate + 'T12:00:00');
         lastEndPlusOne.setDate(lastEndPlusOne.getDate() + 1);
-        const lastEndPlusOneStr = lastEndPlusOne.toISOString().split('T')[0];
+        const lastEndPlusOneStr = toLocalDateString(lastEndPlusOne);
 
         if (current.startDate <= lastEndPlusOneStr) {
             // Scal - weź późniejszą datę końcową
@@ -841,8 +855,8 @@ function getVacationsForMonth(year, month) {
 
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
-    const monthStartStr = monthStart.toISOString().split('T')[0];
-    const monthEndStr = monthEnd.toISOString().split('T')[0];
+    const monthStartStr = toLocalDateString(monthStart);
+    const monthEndStr = toLocalDateString(monthEnd);
 
     Object.keys(vacations).forEach(playerName => {
         const playerVacations = vacations[playerName] || [];
@@ -1010,9 +1024,10 @@ function mergeOverlappingHolidays(holidays) {
         const last = merged[merged.length - 1];
 
         // Sprawdź czy święta nachodzą na siebie lub są przyległe
-        const lastEndPlusOne = new Date(last.endDate);
+        // Parsuj datę jako lokalną (dodaj T12:00 żeby uniknąć problemów z strefą czasową)
+        const lastEndPlusOne = new Date(last.endDate + 'T12:00:00');
         lastEndPlusOne.setDate(lastEndPlusOne.getDate() + 1);
-        const lastEndPlusOneStr = lastEndPlusOne.toISOString().split('T')[0];
+        const lastEndPlusOneStr = toLocalDateString(lastEndPlusOne);
 
         if (current.startDate <= lastEndPlusOneStr) {
             // Scal - weź późniejszą datę końcową
