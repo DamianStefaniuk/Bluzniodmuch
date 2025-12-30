@@ -339,6 +339,7 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
 /**
  * Synchronizuje dane - pobiera z Gist i scala z lokalnymi
  * Jeśli zdalne dane mają nowszy forceResetTimestamp, wymusza nadpisanie lokalnych
+ * Po synchronizacji przelicza bonusy i osiągnięcia
  */
 async function syncData() {
     if (!isSyncConfigured()) {
@@ -374,9 +375,24 @@ async function syncData() {
         saveData(mergedData);
         saveLocalAchievements(mergedAchievements);
 
+        // Przelicz bonusy dla wszystkich graczy po synchronizacji
+        // (urlopy mogły się zmienić przez synchronizację)
+        if (typeof recalculateAllPlayersBonuses === 'function') {
+            recalculateAllPlayersBonuses();
+        }
+
+        // Przelicz osiągnięcia - usuń te przyznane w dni urlopowe i sprawdź ponownie
+        if (typeof recalculateAllAchievements === 'function') {
+            recalculateAllAchievements();
+        }
+
+        // Pobierz zaktualizowane dane i osiągnięcia po przeliczeniu
+        const updatedData = getData();
+        const updatedAchievements = getLocalAchievements();
+
         // Zapisz na Gist (tylko jeśli nie było wymuszonego resetu)
         if (!(remoteForceReset > localForceReset && remoteForceReset > lastSyncTime)) {
-            await saveToGist(mergedData, mergedAchievements);
+            await saveToGist(updatedData, updatedAchievements);
         }
 
         return { success: true, message: 'Synchronizacja zakończona pomyślnie' };

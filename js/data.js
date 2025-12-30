@@ -587,30 +587,95 @@ function dateRangeIncludesToday(startDate, endDate) {
 }
 
 /**
+ * Przelicza bonusy dla wszystkich graczy
+ * Używane po synchronizacji lub masowych zmianach urlopów
+ *
+ * @returns {object} - informacje o korektach dla każdego gracza
+ */
+function recalculateAllPlayersBonuses() {
+    const results = {};
+    PLAYERS.forEach(playerName => {
+        results[playerName] = recalculateBonusesForPlayer(playerName);
+    });
+    return results;
+}
+
+/**
+ * Przelicza bonusy gracza od nowa na podstawie aktualnych urlopów
+ * Używane po dodaniu/usunięciu urlopu (szczególnie wstecznego)
+ *
+ * @param {string} playerName - nazwa gracza
+ * @returns {object} - informacja o korekcie { oldBonus, newBonus, difference }
+ */
+function recalculateBonusesForPlayer(playerName) {
+    const data = getData();
+    const playerData = data.players[playerName];
+    if (!playerData) return { oldBonus: 0, newBonus: 0, difference: 0 };
+
+    const oldBonus = playerData.bonusGained || 0;
+    const oldDays = playerData.rewardedInactiveDays || 0;
+    const oldWeeks = playerData.rewardedInactiveWeeks || 0;
+
+    // Data referencyjna - ostatnia aktywność lub tracking start
+    const trackingStartDate = data.trackingStartDate
+        ? new Date(data.trackingStartDate)
+        : new Date('2025-12-15T00:00:00.000Z');
+
+    const referenceDate = playerData.lastActivity
+        ? new Date(playerData.lastActivity)
+        : trackingStartDate;
+
+    // Przelicz dni robocze (bez urlopów) od referencji do wczoraj
+    const workdaysSinceActivity = countWorkdaysSince(referenceDate, playerName);
+
+    // Bonus za dni (+1 za każdy dzień roboczy)
+    const dailyBonus = workdaysSinceActivity;
+
+    // Bonus za pełne tygodnie (+5 za każdy pełny tydzień = 5 dni roboczych)
+    const fullWorkWeeks = Math.floor(workdaysSinceActivity / 5);
+    const weeklyBonus = fullWorkWeeks * 5;
+
+    // Bonus za czyste miesiące (+10 za każdy) - zachowujemy istniejące
+    const monthlyBonus = (playerData.cleanMonths || []).length * 10;
+
+    // Oblicz nowy całkowity bonus
+    const newBonus = dailyBonus + weeklyBonus + monthlyBonus;
+
+    // Aktualizuj dane gracza
+    playerData.bonusGained = newBonus;
+    playerData.rewardedInactiveDays = workdaysSinceActivity;
+    playerData.rewardedInactiveWeeks = fullWorkWeeks;
+
+    saveData(data);
+
+    return {
+        oldBonus,
+        newBonus,
+        difference: newBonus - oldBonus,
+        dailyBonus,
+        weeklyBonus,
+        monthlyBonus,
+        workdays: workdaysSinceActivity
+    };
+}
+
+/**
  * Koryguje bonusy gracza gdy urlop jest dodawany/usuwany
- *
- * UWAGA: Z nową logiką bonusów (dzisiejszy dzień NIE jest liczony do bonusu),
- * korekta dla urlopu na "dziś" nie jest potrzebna - bonus za dzisiaj
- * jest przyznawany dopiero JUTRO, więc dodanie/usunięcie urlopu na dziś
- * automatycznie wpłynie na jutrzejsze obliczenia.
- *
- * Funkcja pozostawiona dla kompatybilności - obecnie nie wykonuje korekt.
+ * Wywołuje pełne przeliczenie bonusów
  *
  * @param {string} playerName - nazwa gracza
  * @param {boolean} isAddingVacation - true gdy dodajemy urlop, false gdy usuwamy
- * @returns {object} - informacja o korekcie { corrected: boolean, bonusChange: number, weekBonusChange: number }
+ * @returns {object} - informacja o korekcie
  */
 function adjustBonusForTodayVacation(playerName, isAddingVacation) {
-    // Z nową logiką bonusów dzisiejszy dzień NIE jest liczony (current < now),
-    // więc korekta nie jest potrzebna - jutrzejsze obliczenia automatycznie
-    // uwzględnią urlop (lub jego brak) na dzień dzisiejszy.
-    return { corrected: false, bonusChange: 0, weekBonusChange: 0 };
+    // Przelicz bonusy od nowa - urlopy są teraz uwzględnione
+    return recalculateBonusesForPlayer(playerName);
 }
 
 /**
  * Dodaje urlop dla gracza
  * Automatycznie łączy nachodzące na siebie urlopy
- * Koryguje bonusy jeśli urlop obejmuje dzisiejszy dzień
+ * Przelicza bonusy i osiągnięcia (urlop może być wsteczny)
  * @param {string} playerName - nazwa gracza
  * @param {string} startDate - data początkowa (YYYY-MM-DD)
  * @param {string} endDate - data końcowa (YYYY-MM-DD)
@@ -642,9 +707,15 @@ function addVacation(playerName, startDate, endDate) {
 
     saveData(data);
 
-    // Jeśli urlop obejmuje dzisiaj, skoryguj bonusy
-    if (dateRangeIncludesToday(startDate, endDate)) {
-        adjustBonusForTodayVacation(playerName, true);
+    // Przelicz bonusy - urlop może być wsteczny, więc zawsze przeliczamy
+    recalculateBonusesForPlayer(playerName);
+
+    // Usuń osiągnięcia przyznane w dni urlopowe i sprawdź ponownie
+    if (typeof removeAchievementsOnVacationDays === 'function') {
+        removeAchievementsOnVacationDays(playerName);
+    }
+    if (typeof recheckAchievementsAfterRecalculation === 'function') {
+        recheckAchievementsAfterRecalculation();
     }
 
     return newVacation;
@@ -652,7 +723,7 @@ function addVacation(playerName, startDate, endDate) {
 
 /**
  * Usuwa urlop gracza (soft delete - oznacza jako usunięty)
- * Przywraca bonusy jeśli urlop obejmował dzisiejszy dzień
+ * Przelicza bonusy i osiągnięcia (usunięty urlop mógł być wsteczny)
  * @param {string} playerName - nazwa gracza
  * @param {string} vacationId - ID urlopu do usunięcia
  * @returns {boolean} - czy usunięto
@@ -671,17 +742,18 @@ function removeVacation(playerName, vacationId) {
         return false;
     }
 
-    const includesToday = dateRangeIncludesToday(vacationToRemove.startDate, vacationToRemove.endDate);
-
     // Soft delete - oznacz jako usunięty zamiast fizycznie usuwać
     vacationToRemove.deleted = true;
     vacationToRemove.deletedAt = new Date().toISOString();
 
     saveData(data);
 
-    // Jeśli usunięty urlop obejmował dzisiaj, przywróć bonusy
-    if (includesToday) {
-        adjustBonusForTodayVacation(playerName, false);
+    // Przelicz bonusy - usunięty urlop mógł być wsteczny, więc zawsze przeliczamy
+    recalculateBonusesForPlayer(playerName);
+
+    // Ponownie sprawdź osiągnięcia (gracz mógł odzyskać punkty/dni bez przeklinania)
+    if (typeof recheckAchievementsAfterRecalculation === 'function') {
+        recheckAchievementsAfterRecalculation();
     }
 
     return true;
@@ -788,7 +860,7 @@ function getVacationsForMonth(year, month) {
 
 /**
  * Dodaje dzień wolny od pracy (urlop dla wszystkich graczy)
- * Koryguje bonusy dla wszystkich graczy jeśli święto obejmuje dzisiaj
+ * Przelicza bonusy i osiągnięcia dla wszystkich graczy (święto może być wsteczne)
  * @param {string} startDate - data początkowa (YYYY-MM-DD)
  * @param {string} endDate - data końcowa (YYYY-MM-DD)
  * @returns {object} - informacja o dodanych urlopach
@@ -839,11 +911,14 @@ function addHoliday(startDate, endDate) {
 
     saveData(data);
 
-    // Jeśli święto obejmuje dzisiaj, skoryguj bonusy dla wszystkich graczy
-    if (dateRangeIncludesToday(startDate, endDate)) {
-        PLAYERS.forEach(playerName => {
-            adjustBonusForTodayVacation(playerName, true);
-        });
+    // Przelicz bonusy dla wszystkich graczy - święto może być wsteczne
+    PLAYERS.forEach(playerName => {
+        recalculateBonusesForPlayer(playerName);
+    });
+
+    // Usuń osiągnięcia przyznane w dni urlopowe i sprawdź ponownie
+    if (typeof recalculateAllAchievements === 'function') {
+        recalculateAllAchievements();
     }
 
     return holiday;
@@ -862,7 +937,7 @@ function getHolidays() {
 
 /**
  * Usuwa dzień wolny od pracy (soft delete - oznacza jako usunięty)
- * Przywraca bonusy dla wszystkich graczy jeśli święto obejmowało dzisiaj
+ * Przelicza bonusy i osiągnięcia dla wszystkich graczy (usunięte święto mogło być wsteczne)
  * @param {string} holidayId - ID święta do usunięcia
  * @returns {boolean} - czy usunięto
  */
@@ -878,8 +953,6 @@ function removeHoliday(holidayId) {
     if (!holiday) {
         return false;
     }
-
-    const includesToday = dateRangeIncludesToday(holiday.startDate, holiday.endDate);
 
     // Soft delete święta
     holiday.deleted = true;
@@ -900,11 +973,14 @@ function removeHoliday(holidayId) {
 
     saveData(data);
 
-    // Jeśli usunięte święto obejmowało dzisiaj, przywróć bonusy dla wszystkich graczy
-    if (includesToday) {
-        PLAYERS.forEach(playerName => {
-            adjustBonusForTodayVacation(playerName, false);
-        });
+    // Przelicz bonusy dla wszystkich graczy - usunięte święto mogło być wsteczne
+    PLAYERS.forEach(playerName => {
+        recalculateBonusesForPlayer(playerName);
+    });
+
+    // Ponownie sprawdź osiągnięcia (gracze mogli odzyskać punkty/dni bez przeklinania)
+    if (typeof recheckAchievementsAfterRecalculation === 'function') {
+        recheckAchievementsAfterRecalculation();
     }
 
     return true;

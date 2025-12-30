@@ -728,3 +728,161 @@ function getPlayerYearChampionAchievements(playerName) {
             };
         });
 }
+
+// ============================================
+// FUNKCJE USUWANIA OSIĄGNIĘĆ PRZYZNANYCH W DNI URLOPOWE
+// ============================================
+
+/**
+ * Usuwa osiągnięcia gracza przyznane w dni urlopowe lub dni wolne od pracy
+ * Wywoływane po dodaniu urlopu wstecznego
+ *
+ * @param {string} playerName - nazwa gracza
+ * @returns {array} - lista usuniętych osiągnięć
+ */
+function removeAchievementsOnVacationDays(playerName) {
+    if (typeof isPlayerOnVacation !== 'function') {
+        return [];
+    }
+
+    const awarded = getAwardedAchievements();
+    const playerAwarded = awarded.individual[playerName] || [];
+
+    if (playerAwarded.length === 0) {
+        return [];
+    }
+
+    const removedAchievements = [];
+    const keptAchievements = [];
+
+    playerAwarded.forEach(achievement => {
+        if (!achievement.date) {
+            // Brak daty - zachowaj osiągnięcie
+            keptAchievements.push(achievement);
+            return;
+        }
+
+        const awardDate = new Date(achievement.date);
+        const awardDateStr = awardDate.toISOString().split('T')[0];
+
+        // Sprawdź czy osiągnięcie zostało przyznane w dzień urlopowy
+        if (isPlayerOnVacation(playerName, awardDateStr)) {
+            removedAchievements.push(achievement);
+        } else {
+            keptAchievements.push(achievement);
+        }
+    });
+
+    // Zapisz tylko jeśli coś usunęliśmy
+    if (removedAchievements.length > 0) {
+        awarded.individual[playerName] = keptAchievements;
+        saveAwardedAchievements(awarded);
+    }
+
+    return removedAchievements;
+}
+
+/**
+ * Usuwa osiągnięcia dla wszystkich graczy przyznane w dni urlopowe
+ * @returns {object} - słownik { playerName: [usunięte osiągnięcia] }
+ */
+function removeAllPlayersVacationAchievements() {
+    const results = {};
+    PLAYERS.forEach(playerName => {
+        const removed = removeAchievementsOnVacationDays(playerName);
+        if (removed.length > 0) {
+            results[playerName] = removed;
+        }
+    });
+    return results;
+}
+
+/**
+ * Ponownie sprawdza i przyznaje osiągnięcia dla wszystkich graczy
+ * Wywoływane po przeliczeniu bonusów i usunięciu osiągnięć urlopowych
+ * Nie blokuje na podstawie urlopu (pozwala na przyznanie osiągnięć jeśli warunki są spełnione)
+ *
+ * @returns {array} - lista nowo przyznanych osiągnięć
+ */
+function recheckAchievementsAfterRecalculation() {
+    const allNewlyAwarded = [];
+    const data = getData();
+    const awarded = getAwardedAchievements();
+
+    PLAYERS.forEach(playerName => {
+        const playerData = data.players[playerName];
+        if (!playerData) return;
+
+        // Inicjalizuj strukturę dla gracza jeśli nie istnieje
+        if (!awarded.individual[playerName]) {
+            awarded.individual[playerName] = [];
+        }
+
+        // Sprawdź osiągnięcia indywidualne
+        INDIVIDUAL_ACHIEVEMENTS.forEach(achievement => {
+            // Pomijaj już przyznane
+            if (awarded.individual[playerName].some(a => a.id === achievement.id)) {
+                return;
+            }
+
+            // Sprawdź warunek
+            if (achievement.condition(playerData, data, playerName)) {
+                const awardedAchievement = {
+                    id: achievement.id,
+                    date: new Date().toISOString()
+                };
+                awarded.individual[playerName].push(awardedAchievement);
+                allNewlyAwarded.push({
+                    ...achievement,
+                    hasImage: achievement.image !== null && achievement.image !== '',
+                    type: 'individual',
+                    player: playerName,
+                    date: awardedAchievement.date
+                });
+            }
+        });
+    });
+
+    // Sprawdź osiągnięcia zespołowe
+    TEAM_ACHIEVEMENTS.forEach(achievement => {
+        // Pomijaj już przyznane
+        if (awarded.team.some(a => a.id === achievement.id)) {
+            return;
+        }
+
+        // Sprawdź warunek
+        if (achievement.condition(data)) {
+            const awardedAchievement = {
+                id: achievement.id,
+                date: new Date().toISOString()
+            };
+            awarded.team.push(awardedAchievement);
+            allNewlyAwarded.push({
+                ...achievement,
+                hasImage: achievement.image !== null && achievement.image !== '',
+                type: 'team',
+                date: awardedAchievement.date
+            });
+        }
+    });
+
+    // Zapisz jeśli były nowe osiągnięcia
+    if (allNewlyAwarded.length > 0) {
+        saveAwardedAchievements(awarded);
+    }
+
+    return allNewlyAwarded;
+}
+
+/**
+ * Pełne przeliczenie osiągnięć:
+ * 1. Usuwa osiągnięcia przyznane w dni urlopowe
+ * 2. Ponownie sprawdza osiągnięcia na podstawie aktualnych danych
+ *
+ * @returns {object} - { removed: usunięte, added: dodane }
+ */
+function recalculateAllAchievements() {
+    const removed = removeAllPlayersVacationAchievements();
+    const added = recheckAchievementsAfterRecalculation();
+    return { removed, added };
+}
