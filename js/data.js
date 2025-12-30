@@ -781,15 +781,24 @@ function removeVacation(playerName, vacationId) {
 /**
  * Scala nachodzące na siebie urlopy
  * Urlopy świąteczne (isHoliday=true) nie są scalane z normalnymi urlopami
+ * Usunięte urlopy (deleted=true) nie są scalane - są zachowane osobno dla synchronizacji
  * @param {Array} vacations - tablica urlopów
  * @returns {Array} - scalone urlopy
  */
 function mergeOverlappingVacations(vacations) {
     if (vacations.length <= 1) return vacations;
 
-    // Rozdziel urlopy świąteczne i normalne
-    const holidayVacations = vacations.filter(v => v.isHoliday);
-    const normalVacations = vacations.filter(v => !v.isHoliday);
+    // Zachowaj usunięte urlopy osobno (nie scalamy ich)
+    const deletedVacations = vacations.filter(v => v.deleted);
+    const activeVacations = vacations.filter(v => !v.deleted);
+
+    if (activeVacations.length <= 1) {
+        return [...activeVacations, ...deletedVacations];
+    }
+
+    // Rozdziel urlopy świąteczne i normalne (tylko aktywne)
+    const holidayVacations = activeVacations.filter(v => v.isHoliday);
+    const normalVacations = activeVacations.filter(v => !v.isHoliday);
 
     // Scal tylko normalne urlopy
     const mergedNormal = mergeVacationArray(normalVacations);
@@ -797,8 +806,8 @@ function mergeOverlappingVacations(vacations) {
     // Scal święta osobno (między sobą)
     const mergedHolidays = mergeVacationArray(holidayVacations);
 
-    // Połącz wyniki
-    return [...mergedNormal, ...mergedHolidays];
+    // Połącz wyniki (aktywne scalone + usunięte zachowane)
+    return [...mergedNormal, ...mergedHolidays, ...deletedVacations];
 }
 
 /**
@@ -1008,14 +1017,23 @@ function removeHoliday(holidayId) {
 
 /**
  * Scala nachodzące na siebie święta
+ * Usunięte święta (deleted=true) nie są scalane - są zachowane osobno dla synchronizacji
  * @param {Array} holidays - tablica świąt
  * @returns {Array} - scalone święta
  */
 function mergeOverlappingHolidays(holidays) {
     if (holidays.length <= 1) return holidays;
 
-    // Sortuj po dacie początkowej
-    const sorted = [...holidays].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    // Zachowaj usunięte święta osobno (nie scalamy ich)
+    const deletedHolidays = holidays.filter(h => h.deleted);
+    const activeHolidays = holidays.filter(h => !h.deleted);
+
+    if (activeHolidays.length <= 1) {
+        return [...activeHolidays, ...deletedHolidays];
+    }
+
+    // Sortuj po dacie początkowej (tylko aktywne)
+    const sorted = [...activeHolidays].sort((a, b) => a.startDate.localeCompare(b.startDate));
 
     const merged = [sorted[0]];
 
@@ -1040,5 +1058,6 @@ function mergeOverlappingHolidays(holidays) {
         }
     }
 
-    return merged;
+    // Zwróć scalone aktywne + zachowane usunięte
+    return [...merged, ...deletedHolidays];
 }
