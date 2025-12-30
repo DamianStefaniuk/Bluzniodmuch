@@ -602,21 +602,28 @@ function mergePlayerData(local, remote) {
 
     // Najpierw ustal które źródło ma nowsze lastActivity (późniejsze przekleństwo)
     const mergedLastActivity = mergeNewerDate(local.lastActivity, remote.lastActivity);
-    const localActivityNewer = mergedLastActivity === local.lastActivity && local.lastActivity !== null;
+    // Lokalne jest "nowsze" jeśli lastActivity jest nowsze LUB takie samo (lokalne może mieć korekty za urlopy)
+    const localActivityNewer = (mergedLastActivity === local.lastActivity && local.lastActivity !== null)
+        || (local.lastActivity === remote.lastActivity);
 
     return {
         // Składniki bilansu - bierzemy większą wartość (więcej = więcej akcji wykonanych)
         swearCount: Math.max(local.swearCount || 0, remote.swearCount || 0),
         spentOnRewards: Math.max(local.spentOnRewards || 0, remote.spentOnRewards || 0),
         earnedFromPenalties: Math.max(local.earnedFromPenalties || 0, remote.earnedFromPenalties || 0),
-        bonusGained: Math.max(local.bonusGained || 0, remote.bonusGained || 0),
+
+        // bonusGained musi być spójne z rewardedInactiveDays (bo urlopy mogą zmniejszyć bonus)
+        // Bierzemy z tego samego źródła co rewardedInactiveDays
+        bonusGained: localActivityNewer
+            ? (local.bonusGained || 0)
+            : (remote.bonusGained || 0),
 
         // Liczniki miesięczne i roczne
         monthly: mergeCounters(local.monthly || {}, remote.monthly || {}),
         yearly: mergeCounters(local.yearly || {}, remote.yearly || {}),
 
         // Pola związane z bonusami - bierzemy wartości z tego samego źródła co lastActivity
-        // (bo rewardedInactiveDays jest resetowane do 0 przy przekleństwie)
+        // (bo rewardedInactiveDays jest resetowane do 0 przy przekleństwie i korygowane przez urlopy)
         rewardedInactiveDays: localActivityNewer
             ? (local.rewardedInactiveDays || 0)
             : (remote.rewardedInactiveDays || 0),
