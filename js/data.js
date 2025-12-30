@@ -1061,3 +1061,102 @@ function mergeOverlappingHolidays(holidays) {
     // Zwróć scalone aktywne + zachowane usunięte
     return [...merged, ...deletedHolidays];
 }
+
+// ============================================
+// FUNKCJE SPOTKAŃ (MEETINGS)
+// ============================================
+
+/**
+ * Pobiera listę spotkań (bez usuniętych)
+ * @returns {Array} - tablica spotkań
+ */
+function getMeetings() {
+    const data = getData();
+    const meetings = data.meetings || [];
+    // Filtruj usunięte spotkania (soft delete)
+    return meetings.filter(m => !m.deleted);
+}
+
+/**
+ * Dodaje spotkanie w danym dniu
+ * @param {string} date - data spotkania (YYYY-MM-DD)
+ * @returns {object} - dodane spotkanie
+ */
+function addMeeting(date) {
+    const data = getData();
+
+    if (!data.meetings) {
+        data.meetings = [];
+    }
+
+    // Sprawdź czy spotkanie w tym dniu już istnieje
+    const existingMeeting = data.meetings.find(m => m.date === date && !m.deleted);
+    if (existingMeeting) {
+        return existingMeeting; // Zwróć istniejące spotkanie
+    }
+
+    const meeting = {
+        id: generateId(),
+        date: date,
+        createdAt: new Date().toISOString()
+    };
+
+    data.meetings.push(meeting);
+    saveData(data);
+
+    return meeting;
+}
+
+/**
+ * Usuwa spotkanie (soft delete)
+ * @param {string} meetingId - ID spotkania do usunięcia
+ * @returns {boolean} - czy usunięto
+ */
+function removeMeeting(meetingId) {
+    const data = getData();
+
+    if (!data.meetings) {
+        return false;
+    }
+
+    const meeting = data.meetings.find(m => m.id === meetingId && !m.deleted);
+    if (!meeting) {
+        return false;
+    }
+
+    // Soft delete
+    meeting.deleted = true;
+    meeting.deletedAt = new Date().toISOString();
+
+    saveData(data);
+    return true;
+}
+
+/**
+ * Sprawdza czy w danym dniu jest spotkanie
+ * @param {string} dateStr - data w formacie YYYY-MM-DD
+ * @returns {boolean}
+ */
+function isMeetingDay(dateStr) {
+    const meetings = getMeetings();
+    return meetings.some(m => m.date === dateStr);
+}
+
+/**
+ * Sprawdza czy dzisiaj jest dzień spotkania
+ * @returns {boolean}
+ */
+function isTodayMeetingDay() {
+    const today = toLocalDateString(new Date());
+    return isMeetingDay(today);
+}
+
+/**
+ * Pobiera spotkanie dla danej daty
+ * @param {string} dateStr - data w formacie YYYY-MM-DD
+ * @returns {object|null} - spotkanie lub null
+ */
+function getMeetingForDate(dateStr) {
+    const meetings = getMeetings();
+    return meetings.find(m => m.date === dateStr) || null;
+}

@@ -279,6 +279,7 @@ async function createNewGist(token, description = 'Bluzniodmuch - Dane słoiczka
         purchases: [],
         vacations: {},
         holidays: [],
+        meetings: [],
         lastBonusCheck: null,
         history: {},
         trackingStartDate: new Date().toISOString()
@@ -455,6 +456,7 @@ function mergeAllData(local, remote) {
         purchases: mergePurchases(local.purchases || [], remote.purchases || []),
         vacations: mergeVacations(local.vacations || {}, remote.vacations || {}),
         holidays: mergeHolidays(local.holidays || [], remote.holidays || []),
+        meetings: mergeMeetings(local.meetings || [], remote.meetings || []),
         lastBonusCheck: mergeNewerDate(local.lastBonusCheck, remote.lastBonusCheck),
         lastMonthWinnerCheck: mergeNewerString(local.lastMonthWinnerCheck, remote.lastMonthWinnerCheck),
         lastYearWinnerCheck: mergeNewerString(local.lastYearWinnerCheck, remote.lastYearWinnerCheck),
@@ -591,6 +593,41 @@ function mergeHolidays(local, remote) {
     }
 
     return holidays;
+}
+
+/**
+ * Scala spotkania z dwóch źródeł
+ * Strategia: union po ID
+ * Uwzględnia soft delete - jeśli spotkanie jest usunięte, zachowujemy flagę deleted
+ */
+function mergeMeetings(local, remote) {
+    // Połącz spotkania po ID (union bez duplikatów)
+    const meetingMap = new Map();
+
+    (local || []).forEach(m => {
+        meetingMap.set(m.id, { ...m });
+    });
+
+    (remote || []).forEach(m => {
+        if (!meetingMap.has(m.id)) {
+            meetingMap.set(m.id, { ...m });
+        } else {
+            // Spotkanie istnieje w obu źródłach - rozwiąż konflikt
+            const existing = meetingMap.get(m.id);
+
+            // Jeśli którykolwiek jest usunięty, zachowaj flagę deleted
+            if (m.deleted || existing.deleted) {
+                existing.deleted = true;
+                if (m.deletedAt && existing.deletedAt) {
+                    existing.deletedAt = m.deletedAt > existing.deletedAt ? m.deletedAt : existing.deletedAt;
+                } else {
+                    existing.deletedAt = m.deletedAt || existing.deletedAt;
+                }
+            }
+        }
+    });
+
+    return Array.from(meetingMap.values());
 }
 
 /**
