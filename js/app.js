@@ -124,10 +124,16 @@ function renderClickers() {
         } else {
             // Pokaż streak z płomyczkiem
             const currentStreak = calculateCurrentStreak(player);
-            const streakDisplay = currentStreak > 0
-                ? `🔥 ${currentStreak}`
-                : `🔥 0`;
-            cardHtml += `<div class="streak-display">${streakDisplay}</div>`;
+            const data = getData();
+            const playerData = data.players[player];
+            const longestStreak = playerData?.longestStreak || 0;
+
+            cardHtml += `
+                <div class="streak-container">
+                    <div class="streak-display">🔥 ${currentStreak}</div>
+                    <div class="streak-max">Max: 🔥 ${longestStreak}</div>
+                </div>
+            `;
         }
 
         card.innerHTML = cardHtml;
@@ -287,26 +293,24 @@ function renderTeamStats() {
 function updatePeriodLabel() {
     const label = document.getElementById('currentPeriodLabel');
     const periodNav = document.getElementById('periodNav');
-    const periodDropdown = document.getElementById('periodDropdown');
+    const periodLabelStatic = document.getElementById('periodLabelStatic');
 
     // Ukryj/pokaż nawigację w zależności od okresu
     if (currentPeriod === 'month') {
         periodNav.style.display = 'flex';
-        label.textContent = getMonthName(selectedMonthKey);
+        periodLabelStatic.style.display = 'none';
         updateMonthDropdown();
         updateNavArrows();
     } else if (currentPeriod === 'year') {
         periodNav.style.display = 'flex';
-        label.textContent = `Rok ${selectedYearKey}`;
+        periodLabelStatic.style.display = 'none';
         updateYearDropdown();
         updateNavArrows();
     } else {
         periodNav.style.display = 'none';
+        periodLabelStatic.style.display = 'block';
         label.textContent = 'Ogółem';
     }
-
-    // Ukryj dropdown
-    periodDropdown.classList.remove('active');
 }
 
 /**
@@ -404,15 +408,7 @@ function goToNextPeriod() {
 }
 
 /**
- * Toggle dropdown wyboru okresu
- */
-function togglePeriodDropdown() {
-    const dropdown = document.getElementById('periodDropdown');
-    dropdown.classList.toggle('active');
-}
-
-/**
- * Obsługa zmiany w dropdown
+ * Obsługa zmiany w select
  */
 function handlePeriodSelect(e) {
     const value = e.target.value;
@@ -450,15 +446,7 @@ function setupEventListeners() {
     // Nawigacja między okresami
     document.getElementById('prevPeriod').addEventListener('click', goToPrevPeriod);
     document.getElementById('nextPeriod').addEventListener('click', goToNextPeriod);
-    document.getElementById('periodLabelBtn').addEventListener('click', togglePeriodDropdown);
     document.getElementById('monthYearSelect').addEventListener('change', handlePeriodSelect);
-
-    // Zamknij dropdown przy kliknięciu poza
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.current-period')) {
-            document.getElementById('periodDropdown').classList.remove('active');
-        }
-    });
 
     // Wskaźnik synchronizacji - kliknięcie
     const syncIndicator = document.getElementById('syncIndicator');
