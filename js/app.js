@@ -237,17 +237,9 @@ function renderScoreboard() {
         const row = document.createElement('tr');
         row.className = place <= 3 ? `place-${place}` : '';
 
-        let pointsDisplay, pointsClass;
-
-        if (currentPeriod === 'month') {
-            // Miesiąc: pokazuje bilans (z kolorowaniem)
-            pointsDisplay = player.points > 0 ? `+${player.points}` : player.points;
-            pointsClass = player.points > 0 ? 'positive' : (player.points < 0 ? 'negative' : 'neutral');
-        } else {
-            // Rok/Ogółem: pokazuje liczbę przekleństw (bez kolorowania)
-            pointsDisplay = player.points;
-            pointsClass = 'neutral';
-        }
+        // Wszystkie okresy pokazują liczbę przekleństw (bez kolorowania)
+        const pointsDisplay = player.points;
+        const pointsClass = 'neutral';
 
         row.innerHTML = `
             <td><span class="place-badge">${place}</span></td>
