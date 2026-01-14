@@ -18,57 +18,57 @@ const MONTH_ICONS = {
     // Luty
     '02': {
         icon: '🏆',
-        image: null           // np: 'image/month-february.png'
+        image: 'image/february.png'           // np: 'image/month-february.png'
     },
     // Marzec
     '03': {
         icon: '🏆',
-        image: null           // np: 'image/month-march.png'
+        image: 'image/march.png'          // np: 'image/month-march.png'
     },
     // Kwiecień
     '04': {
         icon: '🏆',
-        image: null           // np: 'image/month-april.png'
+        image: 'image/april.png'           // np: 'image/month-april.png'
     },
     // Maj
     '05': {
         icon: '🏆',
-        image: null           // np: 'image/month-may.png'
+        image: 'image/may.png'           // np: 'image/month-may.png'
     },
     // Czerwiec
     '06': {
         icon: '🏆',
-        image: null           // np: 'image/month-june.png'
+        image: 'image/june.png'           // np: 'image/month-june.png'
     },
     // Lipiec
     '07': {
         icon: '🏆',
-        image: null           // np: 'image/month-july.png'
+        image: 'image/july.png'           // np: 'image/month-july.png'
     },
     // Sierpień
     '08': {
         icon: '🏆',
-        image: null           // np: 'image/month-august.png'
+        image: 'image/august.png'           // np: 'image/month-august.png'
     },
     // Wrzesień
     '09': {
         icon: '🏆',
-        image: null           // np: 'image/month-september.png'
+        image: 'image/september.png'           // np: 'image/month-september.png'
     },
     // Październik
     '10': {
         icon: '🏆',
-        image: null           // np: 'image/month-october.png'
+        image: 'image/october.png'           // np: 'image/month-october.png'
     },
     // Listopad
     '11': {
         icon: '🏆',
-        image: null           // np: 'image/month-november.png'
+        image: 'image/november.png'           // np: 'image/month-november.png'
     },
     // Grudzień
     '12': {
         icon: '🏆',
-        image: null           // np: 'image/month-december.png'
+        image: 'image/december.png'           // np: 'image/month-december.png'
     }
 };
 

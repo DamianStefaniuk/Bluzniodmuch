@@ -245,6 +245,12 @@ function initializeData() {
             needsSave = true;
         }
 
+        // Migracja: dodaj history jeśli nie istnieje
+        if (!data.history) {
+            data.history = {};
+            needsSave = true;
+        }
+
         PLAYERS.forEach(player => {
             if (!data.players[player]) {
                 data.players[player] = {
@@ -430,19 +436,56 @@ function addSwear(playerName) {
 }
 
 /**
+ * Pobiera poprzedni ranking dla danego okresu
+ * @param {string} period - 'month', 'year' lub 'all'
+ * @returns {object} - mapa gracz -> pozycja (1-indexed)
+ */
+function getPreviousRanking(period) {
+    const data = getData();
+    if (!data.history) return {};
+
+    const key = `${period}Ranking`;
+    return data.history[key] || {};
+}
+
+/**
+ * Zapisuje aktualny ranking jako poprzedni
+ * @param {string} period - 'month', 'year' lub 'all'
+ * @param {Array} scores - posortowana tablica wyników
+ */
+function savePreviousRanking(period, scores) {
+    const data = getData();
+    if (!data.history) {
+        data.history = {};
+    }
+
+    const key = `${period}Ranking`;
+    const ranking = {};
+    scores.forEach((player, index) => {
+        ranking[player.name] = index + 1;
+    });
+
+    data.history[key] = ranking;
+    saveData(data);
+}
+
+/**
  * Pobiera wyniki dla danego okresu
- * - month: bilans punktów (reaguje na zakupy), swearCount = przekleństwa w miesiącu
+ * - month: liczba przekleństw w miesiącu
  * - year: liczba przekleństw w roku
  * - all: całkowita liczba przekleństw
  *
  * Sortowanie:
- * - month: najwyższy bilans = 1 miejsce; przy remisie: mniej przekleństw w miesiącu wygrywa
- * - year/all: najmniej przekleństw = 1 miejsce; przy remisie: wyższy bilans wygrywa
+ * - Wszystkie okresy: najmniej przekleństw = 1 miejsce
+ * - Przy remisie: poprzednia pozycja decyduje (kto był wyżej, zostaje wyżej)
  */
 function getScores(period = 'month') {
     const data = getData();
     const monthKey = getCurrentMonthKey();
     const yearKey = getCurrentYearKey();
+
+    // Pobierz poprzedni ranking dla rozstrzygania remisów
+    const previousRanking = getPreviousRanking(period);
 
     const scores = PLAYERS.map(player => {
         const playerData = data.players[player] || {};
@@ -452,9 +495,9 @@ function getScores(period = 'month') {
 
         switch (period) {
             case 'month':
-                // Miesiąc: bilans punktów, ale swearCount to przekleństwa w miesiącu
-                points = balance;
+                // Miesiąc: liczba przekleństw w miesiącu
                 swearCount = playerData.monthly?.[monthKey] || 0;
+                points = swearCount;
                 break;
             case 'year':
                 // Rok: liczba przekleństw w roku
@@ -468,27 +511,24 @@ function getScores(period = 'month') {
                 break;
         }
 
-        return { name: player, points, swearCount, balance };
+        // Poprzednia pozycja (domyślnie bardzo wysoka liczba dla nowych graczy)
+        const prevPosition = previousRanking[player] || 999;
+
+        return { name: player, points, swearCount, balance, prevPosition };
     });
 
-    // Sortowanie z obsługą remisów:
-    if (period === 'month') {
-        // Miesiąc: od najwyższego bilansu, przy remisie mniej przekleństw wygrywa
-        return scores.sort((a, b) => {
-            if (b.points !== a.points) {
-                return b.points - a.points; // Wyższy bilans = lepszy
-            }
-            return a.swearCount - b.swearCount; // Mniej przekleństw = lepszy
-        });
-    } else {
-        // Rok/Ogółem: od najmniejszej liczby przekleństw, przy remisie wyższy bilans wygrywa
-        return scores.sort((a, b) => {
-            if (a.points !== b.points) {
-                return a.points - b.points; // Mniej przekleństw = lepszy
-            }
-            return b.balance - a.balance; // Wyższy bilans = lepszy
-        });
-    }
+    // Sortowanie: od najmniejszej liczby przekleństw, przy remisie poprzednia pozycja decyduje
+    const sortedScores = scores.sort((a, b) => {
+        if (a.points !== b.points) {
+            return a.points - b.points; // Mniej przekleństw = lepszy
+        }
+        return a.prevPosition - b.prevPosition; // Poprzednia niższa pozycja = lepszy
+    });
+
+    // Zapisz aktualny ranking jako poprzedni (dla przyszłych wywołań)
+    savePreviousRanking(period, sortedScores);
+
+    return sortedScores;
 }
 
 /**

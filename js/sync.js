@@ -445,6 +445,48 @@ function saveLocalAchievements(achievements) {
 }
 
 /**
+ * Scala historię rankingów z dwóch źródeł
+ * Dla każdego gracza bierze niższą (lepszą) pozycję
+ * Dzięki temu przy remisach gracz który kiedykolwiek był wyżej, zostaje wyżej
+ */
+function mergeHistory(local, remote) {
+    if (!remote || Object.keys(remote).length === 0) return local || {};
+    if (!local || Object.keys(local).length === 0) return remote;
+
+    const merged = {};
+
+    // Scal każdy typ rankingu (monthRanking, yearRanking, allRanking)
+    const allKeys = new Set([...Object.keys(local), ...Object.keys(remote)]);
+
+    allKeys.forEach(key => {
+        const localRanking = local[key] || {};
+        const remoteRanking = remote[key] || {};
+
+        // Scal ranking dla danego okresu
+        const mergedRanking = {};
+        const allPlayers = new Set([...Object.keys(localRanking), ...Object.keys(remoteRanking)]);
+
+        allPlayers.forEach(player => {
+            const localPos = localRanking[player];
+            const remotePos = remoteRanking[player];
+
+            if (localPos === undefined) {
+                mergedRanking[player] = remotePos;
+            } else if (remotePos === undefined) {
+                mergedRanking[player] = localPos;
+            } else {
+                // Oba mają pozycję - bierz niższą (lepszą)
+                mergedRanking[player] = Math.min(localPos, remotePos);
+            }
+        });
+
+        merged[key] = mergedRanking;
+    });
+
+    return merged;
+}
+
+/**
  * Scala wszystkie dane z dwóch źródeł
  */
 function mergeAllData(local, remote) {
@@ -460,7 +502,7 @@ function mergeAllData(local, remote) {
         lastBonusCheck: mergeNewerDate(local.lastBonusCheck, remote.lastBonusCheck),
         lastMonthWinnerCheck: mergeNewerString(local.lastMonthWinnerCheck, remote.lastMonthWinnerCheck),
         lastYearWinnerCheck: mergeNewerString(local.lastYearWinnerCheck, remote.lastYearWinnerCheck),
-        history: local.history || remote.history || {},
+        history: mergeHistory(local.history || {}, remote.history || {}),
         // Zachowaj wyższy timestamp wymuszenia resetu
         forceResetTimestamp: Math.max(local.forceResetTimestamp || 0, remote.forceResetTimestamp || 0),
         // Zachowaj najwcześniejszą datę startu śledzenia
