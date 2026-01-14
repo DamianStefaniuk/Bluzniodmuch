@@ -184,6 +184,25 @@ function getMonthWorkdayStats(playerData, monthKey, trackingStartDate) {
 }
 
 /**
+ * Oblicza aktualny streak (dni robocze bez przeklinania) dla gracza
+ * @param {string} playerName - nazwa gracza
+ * @returns {number} - liczba dni roboczych bez przeklinania
+ */
+function calculateCurrentStreak(playerName) {
+    const data = getData();
+    const player = data.players[playerName];
+    if (!player) return 0;
+
+    // Jeśli brak lastActivity - liczymy od trackingStartDate
+    const referenceDate = player.lastActivity
+        ? new Date(player.lastActivity)
+        : new Date(data.trackingStartDate);
+
+    // Użyj istniejącej funkcji countWorkdaysSince (uwzględnia urlopy)
+    return countWorkdaysSince(referenceDate, playerName);
+}
+
+/**
  * Inicjalizuje dane jeśli nie istnieją i migruje stare dane
  */
 function initializeData() {
@@ -214,7 +233,8 @@ function initializeData() {
                 lastMonthBonusCheck: null,
                 monthsWon: [],
                 yearsWon: [],
-                cleanMonths: [] // Miesiące bez przekleństw z naliczonym bonusem
+                cleanMonths: [], // Miesiące bez przekleństw z naliczonym bonusem
+                longestStreak: 0 // Najdłuższy streak (dni bez przeklinania)
             };
         });
 
@@ -306,6 +326,10 @@ function initializeData() {
                 }
                 if (!Array.isArray(p.cleanMonths)) {
                     p.cleanMonths = [];
+                    needsSave = true;
+                }
+                if (typeof p.longestStreak !== 'number') {
+                    p.longestStreak = 0;
                     needsSave = true;
                 }
 
@@ -403,7 +427,8 @@ function addSwear(playerName) {
             lastActivity: null,
             rewardedInactiveDays: 0,
             rewardedInactiveWeeks: 0,
-            lastMonthBonusCheck: null
+            lastMonthBonusCheck: null,
+            longestStreak: 0
         };
     }
 
@@ -423,6 +448,12 @@ function addSwear(playerName) {
         player.yearly[yearKey] = 0;
     }
     player.yearly[yearKey]++;
+
+    // Zapisz aktualny streak jako najdłuższy jeśli jest większy (przed resetem)
+    const currentStreak = calculateCurrentStreak(playerName);
+    if (currentStreak > (player.longestStreak || 0)) {
+        player.longestStreak = currentStreak;
+    }
 
     // Zapisz ostatnią aktywność i zresetuj liczniki nieaktywnych okresów
     player.lastActivity = new Date().toISOString();
