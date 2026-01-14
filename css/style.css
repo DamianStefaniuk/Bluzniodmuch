@@ -108,12 +108,12 @@ section h2 {
 }
 
 .tab-btn:hover, .player-tab:hover {
-    background: var(--primary);
-    color: white;
+    background: rgba(44, 62, 80, 0.15);
+    color: var(--primary);
 }
 
 .tab-btn.active, .player-tab.active {
-    background: var(--secondary);
+    background: var(--primary);
     color: white;
 }
 
@@ -155,7 +155,7 @@ section h2 {
 }
 
 .period-nav-arrow:hover:not(:disabled) {
-    background: var(--secondary);
+    background: #3d5266;
     transform: scale(1.05);
 }
 
@@ -189,32 +189,19 @@ section h2 {
 }
 
 .period-select:hover {
-    background-color: var(--secondary);
+    background-color: #3d5266;
     transform: scale(1.02);
 }
 
 .period-select:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.3);
 }
 
 .period-select option {
     background: white;
     color: var(--text);
     padding: 10px;
-}
-
-/* Statyczna etykieta dla "Ogółem" */
-.period-label-static {
-    display: none;
-    background: var(--primary);
-    color: white;
-    padding: 0.5rem 1.5rem;
-    border-radius: 50px;
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0 auto;
-    width: fit-content;
 }
 
 /* Scores Table */

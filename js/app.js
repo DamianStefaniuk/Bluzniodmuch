@@ -291,25 +291,20 @@ function renderTeamStats() {
  * Aktualizuje etykietę okresu i nawigację
  */
 function updatePeriodLabel() {
-    const label = document.getElementById('currentPeriodLabel');
-    const periodNav = document.getElementById('periodNav');
-    const periodLabelStatic = document.getElementById('periodLabelStatic');
+    const periodContainer = document.getElementById('currentPeriodContainer');
 
     // Ukryj/pokaż nawigację w zależności od okresu
     if (currentPeriod === 'month') {
-        periodNav.style.display = 'flex';
-        periodLabelStatic.style.display = 'none';
+        periodContainer.style.display = 'block';
         updateMonthDropdown();
         updateNavArrows();
     } else if (currentPeriod === 'year') {
-        periodNav.style.display = 'flex';
-        periodLabelStatic.style.display = 'none';
+        periodContainer.style.display = 'block';
         updateYearDropdown();
         updateNavArrows();
     } else {
-        periodNav.style.display = 'none';
-        periodLabelStatic.style.display = 'block';
-        label.textContent = 'Ogółem';
+        // Ogółem - ukryj całą sekcję nawigacji
+        periodContainer.style.display = 'none';
     }
 }
 
