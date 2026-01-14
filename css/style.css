@@ -1180,6 +1180,12 @@ footer {
     font-weight: bold;
 }
 
+.achievement-notification .achievement-player {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
 /* Points display - positive/negative/neutral */
 .positive {
     color: var(--success) !important;

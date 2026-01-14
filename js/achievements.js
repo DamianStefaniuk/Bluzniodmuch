@@ -540,11 +540,17 @@ function showAchievementNotification(achievement) {
         iconHtml = achievement.icon;
     }
 
+    // Określ typ osiągnięcia i ewentualnie gracza
+    const isTeamAchievement = achievement.type === 'team';
+    const typeLabel = isTeamAchievement ? 'Osiągnięcie zespołowe!' : 'Nowe osiągnięcie!';
+    const playerInfo = !isTeamAchievement && achievement.player ? `<div class="achievement-player">${achievement.player}</div>` : '';
+
     notification.innerHTML = `
         <div class="achievement-icon">${iconHtml}</div>
         <div class="achievement-info">
-            <div class="achievement-title">Nowe osiągnięcie!</div>
+            <div class="achievement-title">${typeLabel}</div>
             <div class="achievement-name">${achievement.name}</div>
+            ${playerInfo}
         </div>
     `;
     document.body.appendChild(notification);
