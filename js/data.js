@@ -203,6 +203,30 @@ function calculateCurrentStreak(playerName) {
 }
 
 /**
+ * Aktualizuje longestStreak dla wszystkich graczy na podstawie aktualnego streaka
+ * Wywoływane przy każdym załadowaniu strony, aby longestStreak był zawsze aktualny
+ */
+function updateLongestStreaks() {
+    const data = getData();
+    let needsSave = false;
+
+    PLAYERS.forEach(playerName => {
+        const player = data.players[playerName];
+        if (!player) return;
+
+        const currentStreak = calculateCurrentStreak(playerName);
+        if (currentStreak > (player.longestStreak || 0)) {
+            player.longestStreak = currentStreak;
+            needsSave = true;
+        }
+    });
+
+    if (needsSave) {
+        saveData(data);
+    }
+}
+
+/**
  * Inicjalizuje dane jeśli nie istnieją i migruje stare dane
  */
 function initializeData() {

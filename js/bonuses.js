@@ -195,6 +195,9 @@ function applyInactivityBonuses() {
         recalculateAllPlayersBonuses();
     }
 
+    // Aktualizuj longestStreak dla wszystkich graczy (przy każdym załadowaniu)
+    updateLongestStreaks();
+
     const data = getData();
     const today = toLocalDateString(new Date());
     const lastBonusCheck = data.lastBonusCheck || null;

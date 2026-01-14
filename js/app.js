@@ -110,28 +110,32 @@ function renderClickers() {
             card.dataset.blockReason = blockReason;
         }
 
-        // Generuj HTML karty
+        // Generuj HTML karty - główna sekcja
         let cardHtml = `
-            <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
-            <div class="player-name">${player}</div>
-            <div class="count">${monthlySwears}</div>
-            <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
+            <div class="card-main">
+                <div class="player-status-badge" style="color: ${status.color}">${status.icon}</div>
+                <div class="player-name">${player}</div>
+                <div class="count">${monthlySwears}</div>
+            </div>
         `;
 
-        // Dodaj informację o blokadzie lub streak
+        // Dodaj sekcję info (bilans + streak) lub status blokady
         if (isBlocked) {
-            cardHtml += `<div class="block-status">${blockIcon} ${blockText}</div>`;
+            cardHtml += `<div class="card-info"><div class="block-status">${blockIcon} ${blockText}</div></div>`;
         } else {
-            // Pokaż streak z płomyczkiem
+            // Pokaż bilans i streak
             const currentStreak = calculateCurrentStreak(player);
             const data = getData();
             const playerData = data.players[player];
             const longestStreak = playerData?.longestStreak || 0;
+            // Wyświetl większą wartość jako Max (naprawia błąd gdy currentStreak > longestStreak)
+            const displayedMax = Math.max(currentStreak, longestStreak);
 
             cardHtml += `
-                <div class="streak-container">
-                    <div class="streak-display">🔥 ${currentStreak}</div>
-                    <div class="streak-max">Max: 🔥 ${longestStreak}</div>
+                <div class="card-info">
+                    <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
+                    <div class="streak-line">Aktualnie: ${currentStreak} 🔥</div>
+                    <div class="streak-line">Rekord: ${displayedMax} 🔥</div>
                 </div>
             `;
         }

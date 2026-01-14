@@ -286,12 +286,14 @@ section h2 {
 .clicker-card {
     background: linear-gradient(135deg, var(--primary), #34495e);
     color: white;
-    padding: 20px;
     border-radius: 15px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
     user-select: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .clicker-card:hover {
@@ -304,37 +306,10 @@ section h2 {
     background: linear-gradient(135deg, var(--secondary), #c0392b);
 }
 
-.clicker-card .player-name {
-    font-size: 1.3rem;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.clicker-card .count {
-    font-size: 2rem;
-    font-weight: bold;
-}
-
-.clicker-card .click-hint {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    margin-top: 5px;
-}
-
-.clicker-card .streak-container {
-    margin-top: 5px;
-}
-
-.clicker-card .streak-display {
-    font-size: 1rem;
-    font-weight: bold;
-    opacity: 0.9;
-}
-
-.clicker-card .streak-max {
-    font-size: 0.75rem;
-    opacity: 0.6;
-    margin-top: 2px;
+/* Główna sekcja kafla */
+.clicker-card .card-main {
+    padding: 15px 20px;
+    flex: 1;
 }
 
 .clicker-card .player-status-badge {
@@ -342,10 +317,38 @@ section h2 {
     margin-bottom: 5px;
 }
 
+.clicker-card .player-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.clicker-card .count {
+    font-size: 2.2rem;
+    font-weight: bold;
+}
+
+/* Sekcja info (bilans + streak) */
+.clicker-card .card-info {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .clicker-card .player-total {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 4px;
+}
+
+.clicker-card .streak-line {
+    font-size: 0.8rem;
     opacity: 0.8;
-    margin-top: 3px;
+}
+
+.clicker-card .block-status {
+    font-size: 0.85rem;
+    opacity: 0.9;
 }
 
 /* Team Stats */
