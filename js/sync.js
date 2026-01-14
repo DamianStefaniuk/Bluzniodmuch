@@ -723,7 +723,10 @@ function mergePlayerData(local, remote) {
         yearsWon: mergeArraysUnique(local.yearsWon || [], remote.yearsWon || []),
 
         // Czyste miesiące (bez przekleństw) - union bez duplikatów
-        cleanMonths: mergeArraysUnique(local.cleanMonths || [], remote.cleanMonths || [])
+        cleanMonths: mergeArraysUnique(local.cleanMonths || [], remote.cleanMonths || []),
+
+        // Najdłuższy streak - bierzemy większą wartość
+        longestStreak: Math.max(local.longestStreak || 0, remote.longestStreak || 0)
     };
 }
 
@@ -744,7 +747,8 @@ function createEmptyPlayer() {
         lastMonthBonusCheck: null,
         monthsWon: [],
         yearsWon: [],
-        cleanMonths: []
+        cleanMonths: [],
+        longestStreak: 0
     };
 }
 

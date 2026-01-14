@@ -109,13 +109,16 @@ function renderClickers() {
             <div class="player-total ${balanceClass}">Bilans: ${balanceDisplay} pkt</div>
         `;
 
-        // Dodaj informację o blokadzie lub hint
+        // Dodaj informację o blokadzie lub streak
         if (isBlocked) {
             cardHtml += `<div class="block-status">${blockIcon} ${blockText}</div>`;
-        } else if (isUserAuthorized) {
-            cardHtml += `<div class="click-hint">Kliknij!</div>`;
         } else {
-            cardHtml += `<div class="click-hint">🔒</div>`;
+            // Pokaż streak z płomyczkiem
+            const currentStreak = calculateCurrentStreak(player);
+            const streakDisplay = currentStreak > 0
+                ? `🔥 ${currentStreak}`
+                : `🔥 0`;
+            cardHtml += `<div class="streak-display">${streakDisplay}</div>`;
         }
 
         card.innerHTML = cardHtml;
