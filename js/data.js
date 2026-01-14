@@ -580,6 +580,106 @@ function getTeamTotal(period = 'month') {
 }
 
 /**
+ * Pobiera listę wszystkich dostępnych miesięcy z danymi
+ * @returns {string[]} - tablica kluczy miesięcy ["2026-01", "2025-12", ...] (najnowsze najpierw)
+ */
+function getAvailableMonths() {
+    const data = getData();
+    const months = new Set();
+
+    // Dodaj bieżący miesiąc (nawet jeśli pusty)
+    months.add(getCurrentMonthKey());
+
+    PLAYERS.forEach(player => {
+        const playerData = data.players[player];
+        if (playerData?.monthly) {
+            Object.keys(playerData.monthly).forEach(monthKey => {
+                months.add(monthKey);
+            });
+        }
+    });
+
+    return Array.from(months).sort().reverse();
+}
+
+/**
+ * Pobiera listę wszystkich dostępnych lat z danymi
+ * @returns {string[]} - tablica kluczy lat ["2026", "2025", ...] (najnowsze najpierw)
+ */
+function getAvailableYears() {
+    const data = getData();
+    const years = new Set();
+
+    // Dodaj bieżący rok (nawet jeśli pusty)
+    years.add(getCurrentYearKey());
+
+    PLAYERS.forEach(player => {
+        const playerData = data.players[player];
+        if (playerData?.yearly) {
+            Object.keys(playerData.yearly).forEach(yearKey => {
+                years.add(yearKey);
+            });
+        }
+    });
+
+    return Array.from(years).sort().reverse();
+}
+
+/**
+ * Pobiera wyniki dla konkretnego miesiąca
+ * @param {string} monthKey - klucz miesiąca "YYYY-MM"
+ * @returns {Array} - tablica graczy z wynikami
+ */
+function getScoresForMonth(monthKey) {
+    const data = getData();
+    return PLAYERS.map(player => {
+        const playerData = data.players[player] || {};
+        return {
+            name: player,
+            points: playerData.monthly?.[monthKey] || 0,
+            swearCount: playerData.monthly?.[monthKey] || 0
+        };
+    }).sort((a, b) => a.points - b.points);
+}
+
+/**
+ * Pobiera wyniki dla konkretnego roku
+ * @param {string} yearKey - klucz roku "YYYY"
+ * @returns {Array} - tablica graczy z wynikami
+ */
+function getScoresForYear(yearKey) {
+    const data = getData();
+    return PLAYERS.map(player => {
+        const playerData = data.players[player] || {};
+        return {
+            name: player,
+            points: playerData.yearly?.[yearKey] || 0,
+            swearCount: playerData.yearly?.[yearKey] || 0
+        };
+    }).sort((a, b) => a.points - b.points);
+}
+
+/**
+ * Pobiera sumę przekleństw zespołu dla konkretnego miesiąca
+ */
+function getTeamTotalForMonth(monthKey) {
+    const data = getData();
+    return PLAYERS.reduce((sum, player) => {
+        return sum + (data.players[player]?.monthly?.[monthKey] || 0);
+    }, 0);
+}
+
+/**
+ * Pobiera sumę przekleństw zespołu dla konkretnego roku
+ */
+function getTeamTotalForYear(yearKey) {
+    const data = getData();
+    return PLAYERS.reduce((sum, player) => {
+        return sum + (data.players[player]?.yearly?.[yearKey] || 0);
+    }, 0);
+}
+
+/**
  * Pobiera bilans punktów gracza (może być dodatni lub ujemny)
  */
 function getPlayerPoints(playerName) {

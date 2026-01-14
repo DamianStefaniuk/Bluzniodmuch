@@ -25,14 +25,25 @@
             <section class="scoreboard">
                 <h2>Tablica Wyników</h2>
 
-                <div class="period-tabs">
+                <div class="period-tabs centered">
                     <button class="tab-btn active" data-period="month">Miesiąc</button>
                     <button class="tab-btn" data-period="year">Rok</button>
                     <button class="tab-btn" data-period="all">Ogółem</button>
                 </div>
 
                 <div class="current-period">
-                    <span id="currentPeriodLabel"></span>
+                    <div class="period-nav" id="periodNav">
+                        <button class="period-nav-arrow" id="prevPeriod" title="Poprzedni">&lt;</button>
+                        <button class="period-label-btn" id="periodLabelBtn">
+                            <span id="currentPeriodLabel"></span>
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <button class="period-nav-arrow" id="nextPeriod" title="Następny">&gt;</button>
+                    </div>
+
+                    <div class="period-dropdown" id="periodDropdown">
+                        <select id="monthYearSelect"></select>
+                    </div>
                 </div>
 
                 <table class="scores-table">

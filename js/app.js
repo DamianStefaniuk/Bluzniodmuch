@@ -5,6 +5,10 @@
 // Aktualnie wybrany okres
 let currentPeriod = 'month';
 
+// Aktualnie wyświetlany miesiąc/rok (domyślnie bieżący)
+let selectedMonthKey = null;
+let selectedYearKey = null;
+
 // Flaga synchronizacji w toku
 let isSyncing = false;
 
@@ -14,6 +18,11 @@ let isSyncing = false;
 document.addEventListener('DOMContentLoaded', async () => {
     initializeData();
     applyInactivityBonuses(); // Nalicz bonusy za nieaktywność
+
+    // Ustaw początkowe wartości dla nawigacji
+    selectedMonthKey = getCurrentMonthKey();
+    selectedYearKey = getCurrentYearKey();
+
     renderClickers();
     renderScoreboard();
     renderTeamStats();
@@ -231,7 +240,16 @@ function showBlockedNotification(message) {
  */
 function renderScoreboard() {
     const tbody = document.getElementById('scoresBody');
-    const scores = getScores(currentPeriod);
+    let scores;
+
+    // Pobierz wyniki w zależności od okresu
+    if (currentPeriod === 'month') {
+        scores = getScoresForMonth(selectedMonthKey);
+    } else if (currentPeriod === 'year') {
+        scores = getScoresForYear(selectedYearKey);
+    } else {
+        scores = getScores('all');
+    }
 
     tbody.innerHTML = '';
 
@@ -264,21 +282,147 @@ function renderTeamStats() {
 }
 
 /**
- * Aktualizuje etykietę okresu
+ * Aktualizuje etykietę okresu i nawigację
  */
 function updatePeriodLabel() {
     const label = document.getElementById('currentPeriodLabel');
-    switch (currentPeriod) {
-        case 'month':
-            label.textContent = getMonthName(getCurrentMonthKey());
-            break;
-        case 'year':
-            label.textContent = `Rok ${getCurrentYearKey()}`;
-            break;
-        case 'all':
-            label.textContent = 'Ogółem';
-            break;
+    const periodNav = document.getElementById('periodNav');
+    const periodDropdown = document.getElementById('periodDropdown');
+
+    // Ukryj/pokaż nawigację w zależności od okresu
+    if (currentPeriod === 'month') {
+        periodNav.style.display = 'flex';
+        label.textContent = getMonthName(selectedMonthKey);
+        updateMonthDropdown();
+        updateNavArrows();
+    } else if (currentPeriod === 'year') {
+        periodNav.style.display = 'flex';
+        label.textContent = `Rok ${selectedYearKey}`;
+        updateYearDropdown();
+        updateNavArrows();
+    } else {
+        periodNav.style.display = 'none';
+        label.textContent = 'Ogółem';
     }
+
+    // Ukryj dropdown
+    periodDropdown.classList.remove('active');
+}
+
+/**
+ * Wypełnia dropdown miesiącami
+ */
+function updateMonthDropdown() {
+    const select = document.getElementById('monthYearSelect');
+    const months = getAvailableMonths();
+
+    select.innerHTML = months.map(month =>
+        `<option value="${month}" ${month === selectedMonthKey ? 'selected' : ''}>
+            ${getMonthName(month)}
+        </option>`
+    ).join('');
+}
+
+/**
+ * Wypełnia dropdown latami
+ */
+function updateYearDropdown() {
+    const select = document.getElementById('monthYearSelect');
+    const years = getAvailableYears();
+
+    select.innerHTML = years.map(year =>
+        `<option value="${year}" ${year === selectedYearKey ? 'selected' : ''}>
+            Rok ${year}
+        </option>`
+    ).join('');
+}
+
+/**
+ * Aktualizuje stan strzałek (disabled gdy na końcu)
+ */
+function updateNavArrows() {
+    const prevBtn = document.getElementById('prevPeriod');
+    const nextBtn = document.getElementById('nextPeriod');
+
+    if (currentPeriod === 'month') {
+        const months = getAvailableMonths();
+        const currentIndex = months.indexOf(selectedMonthKey);
+        prevBtn.disabled = currentIndex >= months.length - 1;
+        nextBtn.disabled = currentIndex <= 0;
+    } else if (currentPeriod === 'year') {
+        const years = getAvailableYears();
+        const currentIndex = years.indexOf(selectedYearKey);
+        prevBtn.disabled = currentIndex >= years.length - 1;
+        nextBtn.disabled = currentIndex <= 0;
+    }
+}
+
+/**
+ * Nawigacja do poprzedniego okresu (starszego)
+ */
+function goToPrevPeriod() {
+    if (currentPeriod === 'month') {
+        const months = getAvailableMonths();
+        const currentIndex = months.indexOf(selectedMonthKey);
+        if (currentIndex < months.length - 1) {
+            selectedMonthKey = months[currentIndex + 1];
+            renderScoreboard();
+            updatePeriodLabel();
+        }
+    } else if (currentPeriod === 'year') {
+        const years = getAvailableYears();
+        const currentIndex = years.indexOf(selectedYearKey);
+        if (currentIndex < years.length - 1) {
+            selectedYearKey = years[currentIndex + 1];
+            renderScoreboard();
+            updatePeriodLabel();
+        }
+    }
+}
+
+/**
+ * Nawigacja do następnego okresu (nowszego)
+ */
+function goToNextPeriod() {
+    if (currentPeriod === 'month') {
+        const months = getAvailableMonths();
+        const currentIndex = months.indexOf(selectedMonthKey);
+        if (currentIndex > 0) {
+            selectedMonthKey = months[currentIndex - 1];
+            renderScoreboard();
+            updatePeriodLabel();
+        }
+    } else if (currentPeriod === 'year') {
+        const years = getAvailableYears();
+        const currentIndex = years.indexOf(selectedYearKey);
+        if (currentIndex > 0) {
+            selectedYearKey = years[currentIndex - 1];
+            renderScoreboard();
+            updatePeriodLabel();
+        }
+    }
+}
+
+/**
+ * Toggle dropdown wyboru okresu
+ */
+function togglePeriodDropdown() {
+    const dropdown = document.getElementById('periodDropdown');
+    dropdown.classList.toggle('active');
+}
+
+/**
+ * Obsługa zmiany w dropdown
+ */
+function handlePeriodSelect(e) {
+    const value = e.target.value;
+    if (currentPeriod === 'month') {
+        selectedMonthKey = value;
+    } else if (currentPeriod === 'year') {
+        selectedYearKey = value;
+    }
+    renderScoreboard();
+    updatePeriodLabel();
 }
 
 /**
@@ -294,11 +438,26 @@ function setupEventListeners() {
             // Dodaj aktywną klasę do klikniętego
             e.target.classList.add('active');
 
-            // Zmień okres i odśwież
+            // Zmień okres i zresetuj do bieżącego miesiąca/roku
             currentPeriod = e.target.dataset.period;
+            selectedMonthKey = getCurrentMonthKey();
+            selectedYearKey = getCurrentYearKey();
             renderScoreboard();
             updatePeriodLabel();
         });
+    });
+
+    // Nawigacja między okresami
+    document.getElementById('prevPeriod').addEventListener('click', goToPrevPeriod);
+    document.getElementById('nextPeriod').addEventListener('click', goToNextPeriod);
+    document.getElementById('periodLabelBtn').addEventListener('click', togglePeriodDropdown);
+    document.getElementById('monthYearSelect').addEventListener('change', handlePeriodSelect);
+
+    // Zamknij dropdown przy kliknięciu poza
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.current-period')) {
+            document.getElementById('periodDropdown').classList.remove('active');
+        }
     });
 
     // Wskaźnik synchronizacji - kliknięcie
